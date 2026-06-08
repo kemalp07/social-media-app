@@ -7,7 +7,6 @@ import {
   FlatList,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,6 +18,7 @@ import { StatBox } from '@/components/StatBox';
 import { useUser } from '@/context/UserContext';
 import * as api from '@/lib/api';
 import { colors, spacing } from '@/constants/colors';
+import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
 import type { Post } from '@/lib/types';
 
 function getLevel(count: number): string {
@@ -71,76 +71,91 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}>
-        <View style={styles.topBarSpacer} />
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <Text style={styles.title}>Profil</Text>
         <Pressable onPress={openSettings} style={styles.settingsBtn} hitSlop={8}>
           <Ionicons name="settings-outline" size={24} color={colors.text} />
         </Pressable>
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Pressable onPress={pickAvatar} style={styles.avatarWrap}>
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-            ) : (
-              <Avatar uri={user.avatar_url} name={user.display_name} size={90} />
-            )}
-            <View style={styles.avatarEditBadge}>
-              <Ionicons name="camera" size={14} color="#fff" />
-            </View>
-          </Pressable>
-          <Text style={styles.name}>{user.display_name}</Text>
-          <Text style={styles.username}>@{user.username}</Text>
-          <Text style={styles.level}>{getLevel(user.follower_count)}</Text>
-          {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
-        </View>
-
-        <View style={styles.stats}>
-          <StatBox label="Gönderi" value={user.post_count} />
-          <StatBox label="Takipçi" value={user.follower_count.toLocaleString('tr-TR')} highlight />
-          <StatBox label="Beğeni" value={user.total_likes_received.toLocaleString('tr-TR')} />
-        </View>
-
-        <Text style={styles.gridTitle}>Gönderiler</Text>
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id}
-          numColumns={3}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <Pressable style={styles.gridItem} onPress={() => router.push(`/post/${item.id}`)}>
-              {item.image_url?.trim() ? (
-                <Image source={{ uri: item.image_url }} style={styles.gridImage} />
-              ) : (
-                <View style={styles.gridPlaceholder}>
-                  <Ionicons name="image-outline" size={24} color={colors.textMuted} />
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id}
+        style={styles.list}
+        numColumns={3}
+        contentContainerStyle={styles.listContent}
+        {...listScrollProps}
+        ListHeaderComponent={
+          <View style={styles.profileSection}>
+            <View style={styles.profileHeader}>
+              <Pressable onPress={pickAvatar} style={styles.avatarWrap}>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                ) : (
+                  <Avatar uri={user.avatar_url} name={user.display_name} size={90} />
+                )}
+                <View style={styles.avatarEditBadge}>
+                  <Ionicons name="camera" size={14} color="#fff" />
                 </View>
-              )}
-              {item.is_viral && <Text style={styles.viralIcon}>🔥</Text>}
-            </Pressable>
-          )}
-          ListEmptyComponent={<Text style={styles.emptyGrid}>Henüz gönderi yok</Text>}
-        />
-      </ScrollView>
+              </Pressable>
+              <Text style={styles.name}>{user.display_name}</Text>
+              <Text style={styles.username}>@{user.username}</Text>
+              <Text style={styles.level}>{getLevel(user.follower_count)}</Text>
+              {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+            </View>
+
+            <View style={styles.stats}>
+              <StatBox label="Gönderi" value={user.post_count} />
+              <StatBox
+                label="Takipçi"
+                value={user.follower_count.toLocaleString('tr-TR')}
+                highlight
+              />
+              <StatBox
+                label="Beğeni"
+                value={user.total_likes_received.toLocaleString('tr-TR')}
+              />
+            </View>
+
+            <Text style={styles.gridTitle}>Gönderiler</Text>
+          </View>
+        }
+        ListEmptyComponent={<Text style={styles.emptyGrid}>Henüz gönderi yok</Text>}
+        renderItem={({ item }) => (
+          <Pressable style={styles.gridItem} onPress={() => router.push(`/post/${item.id}`)}>
+            {item.image_url?.trim() ? (
+              <Image source={{ uri: item.image_url }} style={styles.gridImage} />
+            ) : (
+              <View style={styles.gridPlaceholder}>
+                <Ionicons name="image-outline" size={24} color={colors.textMuted} />
+              </View>
+            )}
+            {item.is_viral && <Text style={styles.viralIcon}>🔥</Text>}
+          </Pressable>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  topBar: {
+  screen: { flex: 1, backgroundColor: '#000000' },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    backgroundColor: colors.bg,
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xs,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  topBarSpacer: { flex: 1 },
+  title: { color: colors.text, fontSize: 22, fontWeight: '700' },
   settingsBtn: { padding: spacing.xs },
-  container: { flex: 1 },
-  content: { padding: spacing.lg, paddingTop: 0 },
-  header: { alignItems: 'center', marginBottom: spacing.lg },
+  list: { flex: 1 },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: TAB_BAR_HEIGHT },
+  profileSection: { paddingTop: spacing.md },
+  profileHeader: { alignItems: 'center', marginBottom: spacing.lg },
   avatarWrap: { position: 'relative' },
   avatarImage: { width: 90, height: 90, borderRadius: 45 },
   avatarEditBadge: {

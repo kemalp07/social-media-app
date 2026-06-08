@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -21,9 +21,9 @@ import { StoryRing } from '@/components/StoryRing';
 import { VibeLogo } from '@/components/VibeLogo';
 import { useUser } from '@/context/UserContext';
 import { useFeed } from '@/hooks/useFeed';
-import { useNotifications } from '@/hooks/useNotifications';
 import * as api from '@/lib/api';
 import { colors, spacing } from '@/constants/colors';
+import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
 import type { FakeUser } from '@/lib/types';
 
 const ICON_WHITE = '#ffffff';
@@ -34,15 +34,30 @@ export default function FeedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { posts, loading, setLoading, refreshing, load, refresh } = useFeed(user?.id);
-  const { unreadCount, load: loadNotifications } = useNotifications(user?.id);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [stories, setStories] = useState<FakeUser[]>([]);
   const [createMenuVisible, setCreateMenuVisible] = useState(false);
+  const listRef = useRef<FlatList>(null);
+
+  const scrollToTop = () => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
+
+  const loadUnreadCount = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const count = await api.getUnreadCount(user.id);
+      setUnreadCount(count);
+    } catch {
+      setUnreadCount(0);
+    }
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      Promise.all([load(), loadNotifications()]).finally(() => setLoading(false));
-    }, [load, loadNotifications, setLoading])
+      Promise.all([load(), loadUnreadCount()]).finally(() => setLoading(false));
+    }, [load, loadUnreadCount, setLoading])
   );
 
   useEffect(() => {
@@ -61,6 +76,7 @@ export default function FeedScreen() {
           <FeedHeaderBar
             onAddPress={() => setCreateMenuVisible(true)}
             onNotificationsPress={() => router.push('/(tabs)/notifications')}
+            onLogoPress={scrollToTop}
             unreadCount={unreadCount}
           />
         </View>
@@ -83,14 +99,17 @@ export default function FeedScreen() {
         <FeedHeaderBar
           onAddPress={() => setCreateMenuVisible(true)}
           onNotificationsPress={() => router.push('/(tabs)/notifications')}
+          onLogoPress={scrollToTop}
           unreadCount={unreadCount}
         />
       </View>
 
       <FlatList
+        ref={listRef}
         data={posts}
         keyExtractor={(item) => item.id}
         style={styles.list}
+        {...listScrollProps}
         renderItem={({ item }) => <PostCard post={item} />}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -98,7 +117,7 @@ export default function FeedScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               refresh();
-              loadNotifications();
+              loadUnreadCount();
             }}
             tintColor={colors.primary}
           />
@@ -152,10 +171,12 @@ export default function FeedScreen() {
 function FeedHeaderBar({
   onAddPress,
   onNotificationsPress,
+  onLogoPress,
   unreadCount,
 }: {
   onAddPress: () => void;
   onNotificationsPress: () => void;
+  onLogoPress: () => void;
   unreadCount: number;
 }) {
   const hasUnread = unreadCount > 0;
@@ -163,26 +184,32 @@ function FeedHeaderBar({
 
   return (
     <View style={styles.headerBar}>
-      <Pressable onPress={onAddPress} style={styles.headerBtn} hitSlop={8}>
-        <Ionicons name="add-outline" size={28} color={ICON_WHITE} />
+      <View style={styles.headerSide}>
+        <Pressable onPress={onAddPress} style={styles.headerBtn} hitSlop={8}>
+          <Ionicons name="add-outline" size={28} color={ICON_WHITE} />
+        </Pressable>
+      </View>
+
+      <Pressable onPress={onLogoPress} hitSlop={8}>
+        <VibeLogo size="sm" />
       </Pressable>
 
-      <VibeLogo size="md" />
-
-      <Pressable onPress={onNotificationsPress} style={styles.headerBtn} hitSlop={8}>
-        <View style={styles.heartWrap}>
-          <Ionicons
-            name={hasUnread ? 'heart' : 'heart-outline'}
-            size={26}
-            color={hasUnread ? HEART_ACTIVE : ICON_WHITE}
-          />
-          {hasUnread && (
-            <View style={styles.heartBadge}>
-              <Text style={styles.heartBadgeText}>{badgeLabel}</Text>
-            </View>
-          )}
-        </View>
-      </Pressable>
+      <View style={[styles.headerSide, styles.headerSideRight]}>
+        <Pressable onPress={onNotificationsPress} style={styles.headerBtn} hitSlop={8}>
+          <View style={styles.heartWrap}>
+            <Ionicons
+              name={hasUnread ? 'heart' : 'heart-outline'}
+              size={26}
+              color={hasUnread ? HEART_ACTIVE : ICON_WHITE}
+            />
+            {hasUnread && (
+              <View style={styles.heartBadge}>
+                <Text style={styles.heartBadgeText}>{badgeLabel}</Text>
+              </View>
+            )}
+          </View>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -206,26 +233,12 @@ function CreateMenuModal({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Oluştur</Text>
           <Pressable style={styles.modalOption} onPress={onPost}>
-            <View style={styles.modalIconWrap}>
-              <Ionicons name="images" size={24} color={colors.primary} />
-            </View>
-            <View style={styles.modalOptionBody}>
-              <Text style={styles.modalOptionText}>Gönderi Paylaş</Text>
-              <Text style={styles.modalOptionSub}>Fotoğraf veya video paylaş</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Text style={styles.modalOptionText}>📷 Fotoğraf Paylaş</Text>
           </Pressable>
+          <View style={styles.modalDivider} />
           <Pressable style={styles.modalOption} onPress={onStory}>
-            <View style={[styles.modalIconWrap, styles.modalIconWrapStory]}>
-              <Ionicons name="add-circle" size={24} color={colors.secondary} />
-            </View>
-            <View style={styles.modalOptionBody}>
-              <Text style={styles.modalOptionText}>Hikaye Ekle</Text>
-              <Text style={styles.modalOptionSub}>24 saatlik hikaye oluştur</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Text style={styles.modalOptionText}>⭕ Hikaye Ekle</Text>
           </Pressable>
           <Pressable style={styles.modalCancel} onPress={onClose}>
             <Text style={styles.modalCancelText}>İptal</Text>
@@ -237,7 +250,7 @@ function CreateMenuModal({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: '#000000' },
   header: {
     backgroundColor: colors.bg,
     paddingHorizontal: spacing.md,
@@ -248,6 +261,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  headerSide: { flex: 1 },
+  headerSideRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
   headerBtn: { padding: 2 },
   heartWrap: {
     width: 30,
@@ -257,10 +276,10 @@ const styles = StyleSheet.create({
   },
   heartBadge: {
     position: 'absolute',
-    right: -1,
-    bottom: -1,
-    minWidth: 15,
-    height: 15,
+    right: -4,
+    top: -4,
+    minWidth: 16,
+    height: 16,
     borderRadius: 8,
     backgroundColor: HEART_ACTIVE,
     borderWidth: 1.5,
@@ -277,7 +296,7 @@ const styles = StyleSheet.create({
   },
   list: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  listContent: { paddingBottom: spacing.xl },
+  listContent: { paddingBottom: TAB_BAR_HEIGHT },
   stories: { marginBottom: spacing.sm },
   storiesContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: spacing.md },
@@ -292,7 +311,7 @@ const styles = StyleSheet.create({
   emptyText: { color: colors.textMuted, fontSize: 14, marginTop: spacing.sm },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
@@ -310,37 +329,21 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.md,
   },
-  modalTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.xs,
-  },
   modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
-    borderRadius: 12,
-  },
-  modalIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(55, 138, 221, 0.15)',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  modalIconWrapStory: {
-    backgroundColor: 'rgba(29, 158, 117, 0.15)',
+  modalOptionText: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '600',
   },
-  modalOptionBody: { flex: 1 },
-  modalOptionText: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  modalOptionSub: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
+  modalDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+  },
   modalCancel: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     paddingVertical: spacing.md,
     alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth,

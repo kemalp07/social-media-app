@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/constants/colors';
+import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
 import { API_URL } from '@/lib/config';
 import * as api from '@/lib/api';
 
@@ -44,9 +45,11 @@ export default function ExploreScreen() {
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
+        style={styles.list}
         numColumns={COLS}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.grid}
+        {...listScrollProps}
         ListEmptyComponent={
           <Text style={styles.empty}>Keşfet içeriği yükleniyor...</Text>
         }
@@ -72,15 +75,17 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: '#000000' },
   header: {
+    backgroundColor: colors.bg,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
   title: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  grid: { paddingTop: GAP },
+  list: { flex: 1 },
+  grid: { paddingTop: GAP, paddingBottom: TAB_BAR_HEIGHT },
   row: { gap: GAP, marginBottom: GAP },
   tile: {
     width: TILE,
