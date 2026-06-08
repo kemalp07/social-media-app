@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/colors';
+import { useUser } from '@/context/UserContext';
 import { resolveAvatarUri } from '@/lib/avatar';
 
 const GRADIENT = ['#378ADD', '#1D9E75'] as const;
@@ -18,7 +19,11 @@ interface Props {
 }
 
 export function StoryRing({ name, avatarUrl, isOwn, hasStory = true, onPress }: Props) {
-  const imageUri = resolveAvatarUri(avatarUrl, name);
+  const { localAvatarUri, user } = useUser();
+
+  const effectiveUrl = isOwn ? (localAvatarUri ?? avatarUrl ?? user?.avatar_url) : avatarUrl;
+  const seed = isOwn ? user?.username : name;
+  const imageUri = resolveAvatarUri(effectiveUrl, seed);
   const displayName = isOwn ? 'Sen' : name.split(' ')[0];
 
   const avatar = (

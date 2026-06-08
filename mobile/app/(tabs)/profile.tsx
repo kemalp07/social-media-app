@@ -38,15 +38,13 @@ function ProfileStat({ value, label }: { value: string | number; label: string }
 }
 
 export default function ProfileScreen() {
-  const { user, logout } = useUser();
+  const { user, logout, updateLocalAvatar } = useUser();
   const router = useRouter();
   const { settingsVisible, closeSettings } = useTabHeader();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-      setAvatarUri(user.avatar_url);
       api.getUserPosts(user.id).then(setPosts).catch(() => setPosts([]));
     }
   }, [user]);
@@ -60,7 +58,9 @@ export default function ProfileScreen() {
       aspect: [1, 1],
       quality: 0.8,
     });
-    if (!result.canceled) setAvatarUri(result.assets[0].uri);
+    if (!result.canceled) {
+      await updateLocalAvatar(result.assets[0].uri);
+    }
   };
 
   const handleLogout = async () => {
@@ -87,11 +87,7 @@ export default function ProfileScreen() {
           <View style={styles.profileSection}>
             <View style={styles.topRow}>
               <Pressable onPress={pickAvatar} style={styles.avatarWrap}>
-                <Avatar
-                  uri={avatarUri ?? user.avatar_url}
-                  name={user.username}
-                  size={90}
-                />
+                <Avatar uri={user.avatar_url} name={user.username} size={90} />
               </Pressable>
 
               <View style={styles.statsRow}>

@@ -97,6 +97,10 @@ def unique_username(base: str, taken: set[str]) -> str:
     return candidate
 
 
+def dicebear_avatar_url(username: str) -> str:
+    return f"https://api.dicebear.com/7.x/avataaars/png?seed={username}"
+
+
 async def seed_tier3(count: int, batch_size: int = 500):
     async with AsyncSessionLocal() as session:
         existing = await session.execute(select(FakeUser.username).where(FakeUser.tier == 3))
@@ -110,6 +114,7 @@ async def seed_tier3(count: int, batch_size: int = 500):
                 batch.append(FakeUser(
                     username=username,
                     avatar_seed=username,
+                    avatar_url=dicebear_avatar_url(username),
                     tier=3,
                     is_open=False,
                 ))
@@ -131,6 +136,7 @@ async def seed_tier2(count: int):
                 username=username,
                 display_name=display,
                 avatar_seed=username,
+                avatar_url=dicebear_avatar_url(username),
                 tier=2,
                 is_open=False,
                 personality_type=PERSONALITIES[i % len(PERSONALITIES)],
@@ -151,6 +157,7 @@ async def seed_tier1():
                 username=char["username"],
                 display_name=char["display_name"],
                 avatar_seed=char["username"],
+                avatar_url=dicebear_avatar_url(char["username"]),
                 tier=1,
                 is_open=True,
                 personality_type=char["personality_type"],
