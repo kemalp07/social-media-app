@@ -16,31 +16,33 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar } from '@/components/Avatar';
 import { PostCard } from '@/components/PostCard';
 import { StoryRing } from '@/components/StoryRing';
 import { VibeLogo } from '@/components/VibeLogo';
 import { useUser } from '@/context/UserContext';
 import { useFeed } from '@/hooks/useFeed';
+import { useNotifications } from '@/hooks/useNotifications';
 import * as api from '@/lib/api';
 import { colors, spacing } from '@/constants/colors';
-import type { FakeUser, User } from '@/lib/types';
+import type { FakeUser } from '@/lib/types';
 
 const ICON_WHITE = '#ffffff';
+const HEART_ACTIVE = '#ff3040';
 
 export default function FeedScreen() {
   const { user } = useUser();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { posts, loading, setLoading, refreshing, load, refresh } = useFeed(user?.id);
+  const { unreadCount, load: loadNotifications } = useNotifications(user?.id);
   const [stories, setStories] = useState<FakeUser[]>([]);
   const [createMenuVisible, setCreateMenuVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      load().finally(() => setLoading(false));
-    }, [load, setLoading])
+      Promise.all([load(), loadNotifications()]).finally(() => setLoading(false));
+    }, [load, loadNotifications, setLoading])
   );
 
   useEffect(() => {
@@ -57,11 +59,9 @@ export default function FeedScreen() {
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
           <FeedHeaderBar
-            user={user}
             onAddPress={() => setCreateMenuVisible(true)}
             onNotificationsPress={() => router.push('/(tabs)/notifications')}
-            onMessagesPress={() => router.push('/(tabs)/messages')}
-            onProfilePress={() => router.push('/(tabs)/profile')}
+            unreadCount={unreadCount}
           />
         </View>
         <View style={styles.center}>
@@ -81,11 +81,9 @@ export default function FeedScreen() {
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <FeedHeaderBar
-          user={user}
           onAddPress={() => setCreateMenuVisible(true)}
           onNotificationsPress={() => router.push('/(tabs)/notifications')}
-          onMessagesPress={() => router.push('/(tabs)/messages')}
-          onProfilePress={() => router.push('/(tabs)/profile')}
+          unreadCount={unreadCount}
         />
       </View>
 
@@ -96,7 +94,14 @@ export default function FeedScreen() {
         renderItem={({ item }) => <PostCard post={item} />}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              refresh();
+              loadNotifications();
+            }}
+            tintColor={colors.primary}
+          />
         }
         ListHeaderComponent={
           <ScrollView
@@ -145,37 +150,39 @@ export default function FeedScreen() {
 }
 
 function FeedHeaderBar({
-  user,
   onAddPress,
   onNotificationsPress,
-  onMessagesPress,
-  onProfilePress,
+  unreadCount,
 }: {
-  user: User | null;
   onAddPress: () => void;
   onNotificationsPress: () => void;
-  onMessagesPress: () => void;
-  onProfilePress: () => void;
+  unreadCount: number;
 }) {
+  const hasUnread = unreadCount > 0;
+  const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount);
+
   return (
     <View style={styles.headerBar}>
       <Pressable onPress={onAddPress} style={styles.headerBtn} hitSlop={8}>
         <Ionicons name="add-outline" size={28} color={ICON_WHITE} />
       </Pressable>
 
-      <VibeLogo size="sm" />
+      <VibeLogo size="md" />
 
-      <View style={styles.headerRight}>
-        <Pressable onPress={onNotificationsPress} style={styles.headerBtn} hitSlop={8}>
-          <Ionicons name="heart-outline" size={26} color={ICON_WHITE} />
-        </Pressable>
-        <Pressable onPress={onMessagesPress} style={styles.headerBtn} hitSlop={8}>
-          <Ionicons name="paper-plane-outline" size={26} color={ICON_WHITE} />
-        </Pressable>
-        <Pressable onPress={onProfilePress} style={styles.avatarBtn} hitSlop={8}>
-          <Avatar uri={user?.avatar_url} name={user?.display_name} size={28} />
-        </Pressable>
-      </View>
+      <Pressable onPress={onNotificationsPress} style={styles.headerBtn} hitSlop={8}>
+        <View style={styles.heartWrap}>
+          <Ionicons
+            name={hasUnread ? 'heart' : 'heart-outline'}
+            size={26}
+            color={hasUnread ? HEART_ACTIVE : ICON_WHITE}
+          />
+          {hasUnread && (
+            <View style={styles.heartBadge}>
+              <Text style={styles.heartBadgeText}>{badgeLabel}</Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -226,19 +233,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
   headerBtn: { padding: 2 },
-  avatarBtn: {
+  heartWrap: {
     width: 30,
-    height: 30,
-    borderRadius: 15,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heartBadge: {
+    position: 'absolute',
+    right: -1,
+    bottom: -1,
+    minWidth: 15,
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: HEART_ACTIVE,
+    borderWidth: 1.5,
+    borderColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  heartBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 11,
   },
   list: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },

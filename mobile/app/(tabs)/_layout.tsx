@@ -1,26 +1,49 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Image, ImageSourcePropType, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-const TAB_ICONS = {
-  home: require('../../assets/icons/icon_home.png'),
-  explore: require('../../assets/icons/icon_explore.png'),
-  create: require('../../assets/icons/icon_add_post.png'),
-  notifications: require('../../assets/icons/icon_notification.png'),
-  messages: require('../../assets/icons/icon_dm.png'),
-} as const;
+import { Avatar } from '@/components/Avatar';
+import { useUser } from '@/context/UserContext';
 
-const ACTIVE_TINT = '#378ADD';
-const INACTIVE_TINT = '#8b8fa3';
+const ACTIVE_COLOR = '#378ADD';
+const INACTIVE_COLOR = '#ffffff';
 
-function TabBarIcon({ source, focused }: { source: ImageSourcePropType; focused: boolean }) {
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TAB_ICON_MAP: Record<string, { active: IoniconName; inactive: IoniconName }> = {
+  index: { active: 'home', inactive: 'home-outline' },
+  explore: { active: 'compass', inactive: 'compass-outline' },
+  notifications: { active: 'notifications', inactive: 'notifications-outline' },
+  messages: { active: 'mail', inactive: 'mail-outline' },
+};
+
+function TabBarIcon({
+  routeName,
+  focused,
+  center = false,
+}: {
+  routeName: string;
+  focused: boolean;
+  center?: boolean;
+}) {
+  const { user } = useUser();
+
+  if (routeName === 'profile') {
+    return (
+      <View style={[styles.profileTab, focused && styles.profileTabFocused]}>
+        <Avatar uri={user?.avatar_url} name={user?.display_name} size={24} />
+      </View>
+    );
+  }
+
+  const icons = TAB_ICON_MAP[routeName];
+  if (!icons) return null;
+
   return (
-    <Image
-      source={source}
-      style={{
-        width: 24,
-        height: 24,
-        tintColor: focused ? ACTIVE_TINT : INACTIVE_TINT,
-      }}
+    <Ionicons
+      name={focused ? icons.active : icons.inactive}
+      size={center ? 28 : 24}
+      color={focused ? ACTIVE_COLOR : INACTIVE_COLOR}
     />
   );
 }
@@ -28,53 +51,29 @@ function TabBarIcon({ source, focused }: { source: ImageSourcePropType; focused:
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarShowLabel: false,
         sceneStyle: { backgroundColor: '#000000' },
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: ACTIVE_TINT,
-        tabBarInactiveTintColor: INACTIVE_TINT,
-      }}
+        tabBarActiveTintColor: ACTIVE_COLOR,
+        tabBarInactiveTintColor: INACTIVE_COLOR,
+        tabBarIcon: ({ focused }) => (
+          <TabBarIcon
+            routeName={route.name}
+            focused={focused}
+            center={route.name === 'messages'}
+          />
+        ),
+      })}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Akış',
-          tabBarIcon: ({ focused }) => <TabBarIcon source={TAB_ICONS.home} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Keşfet',
-          tabBarIcon: ({ focused }) => <TabBarIcon source={TAB_ICONS.explore} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="create"
-        options={{
-          title: 'Yeni',
-          tabBarIcon: ({ focused }) => <TabBarIcon source={TAB_ICONS.create} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: 'Bildirim',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon source={TAB_ICONS.notifications} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Mesajlar',
-          tabBarIcon: ({ focused }) => <TabBarIcon source={TAB_ICONS.messages} focused={focused} />,
-        }}
-      />
+      <Tabs.Screen name="index" options={{ title: 'Akış' }} />
+      <Tabs.Screen name="explore" options={{ title: 'Keşfet' }} />
+      <Tabs.Screen name="messages" options={{ title: 'Mesajlar' }} />
+      <Tabs.Screen name="notifications" options={{ title: 'Bildirim' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
+      <Tabs.Screen name="create" options={{ href: null }} />
       <Tabs.Screen name="search" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -83,7 +82,17 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#000000',
     borderTopWidth: 0,
-    height: 60,
-    paddingBottom: 8,
+    height: 56,
+    paddingBottom: 6,
+  },
+  profileTab: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    overflow: 'hidden',
+  },
+  profileTabFocused: {
+    borderWidth: 2,
+    borderColor: ACTIVE_COLOR,
   },
 });

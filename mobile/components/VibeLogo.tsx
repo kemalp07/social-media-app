@@ -1,28 +1,25 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/constants/colors';
+import { Image, StyleSheet, View } from 'react-native';
 
 interface Props {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const SIZES = { sm: 22, md: 32, lg: 48 };
+const SIZES = { sm: 40, md: 52, lg: 88 };
 
 export function VibeLogo({ size = 'md' }: Props) {
+  const dimension = SIZES[size];
+
   return (
     <View style={styles.row}>
-      <Text style={[styles.logo, { fontSize: SIZES[size] }]}>
-        <Text style={styles.primary}>V</Text>
-        <Text style={styles.secondary}>i</Text>
-        <Text style={styles.primary}>b</Text>
-        <Text style={styles.secondary}>e</Text>
-      </Text>
+      <Image
+        source={require('../assets/app_icon.png')}
+        style={{ width: dimension, height: dimension, borderRadius: dimension * 0.22 }}
+        resizeMode="contain"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row' },
-  logo: { fontWeight: '800', letterSpacing: -1 },
-  primary: { color: colors.primary },
-  secondary: { color: colors.secondary },
+  row: { flexDirection: 'row', alignItems: 'center' },
 });
