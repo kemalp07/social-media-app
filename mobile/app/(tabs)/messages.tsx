@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -49,11 +48,6 @@ export default function MessagesScreen() {
         style={styles.list}
         contentContainerStyle={styles.listContent}
         {...listScrollProps}
-        ListHeaderComponent={
-          <Pressable style={styles.newBtn} onPress={() => router.push('/characters')}>
-            <Text style={styles.newBtnText}>+ Yeni mesaj</Text>
-          </Pressable>
-        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Image
@@ -74,19 +68,8 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000000' },
   list: { flex: 1 },
-  listContent: { paddingHorizontal: spacing.md, paddingBottom: TAB_BAR_HEIGHT },
+  listContent: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: TAB_BAR_HEIGHT },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  newBtn: {
-    backgroundColor: colors.surfaceLight,
-    borderRadius: 10,
-    padding: spacing.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  newBtnText: { color: colors.primary, fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyImage: { width: 200, height: 200, resizeMode: 'contain' },
   emptyText: { color: colors.textMuted, marginTop: spacing.md },

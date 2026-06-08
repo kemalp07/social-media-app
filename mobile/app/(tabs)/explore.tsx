@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -7,9 +7,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
+import { useTabHeader } from '@/context/TabHeaderContext';
 import { colors, spacing } from '@/constants/colors';
 import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
 import { API_URL } from '@/lib/config';
@@ -29,16 +31,40 @@ function resolveImageUrl(url: string): string {
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const { exploreSearchOpen } = useTabHeader();
   const [posts, setPosts] = useState<ExploreItem[]>([]);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     api.getExplorePosts().then(setPosts).catch(() => setPosts([]));
   }, []);
 
+  useEffect(() => {
+    if (!exploreSearchOpen) setQuery('');
+  }, [exploreSearchOpen]);
+
+  const filteredPosts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return posts;
+    return posts.filter((p) => (p.caption ?? '').toLowerCase().includes(q));
+  }, [posts, query]);
+
   return (
     <View style={styles.screen}>
+      {exploreSearchOpen && (
+        <View style={styles.searchBar}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Keşfet'te ara..."
+            placeholderTextColor={colors.textMuted}
+            style={styles.searchInput}
+            autoFocus
+          />
+        </View>
+      )}
       <FlatList
-        data={posts}
+        data={filteredPosts}
         keyExtractor={(item) => item.id}
         style={styles.list}
         numColumns={COLS}
@@ -46,7 +72,9 @@ export default function ExploreScreen() {
         contentContainerStyle={styles.grid}
         {...listScrollProps}
         ListEmptyComponent={
-          <Text style={styles.empty}>Keşfet içeriği yükleniyor...</Text>
+          <Text style={styles.empty}>
+            {query.trim() ? 'Sonuç bulunamadı' : 'Keşfet içeriği yükleniyor...'}
+          </Text>
         }
         renderItem={({ item }) => (
           <Pressable
@@ -71,6 +99,19 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000000' },
+  searchBar: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  searchInput: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.text,
+    fontSize: 15,
+  },
   list: { flex: 1 },
   grid: { paddingTop: GAP, paddingBottom: TAB_BAR_HEIGHT },
   row: { gap: GAP, marginBottom: GAP },

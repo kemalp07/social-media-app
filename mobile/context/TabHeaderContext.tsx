@@ -1,15 +1,18 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
 type TabHeaderActions = {
-  openCreateMenu: (() => void) | null;
   scrollToTop: (() => void) | null;
 };
 
 type TabHeaderContextValue = {
   unreadCount: number;
   setUnreadCount: (count: number) => void;
-  registerActions: (actions: Partial<TabHeaderActions>) => void;
+  createMenuVisible: boolean;
   openCreateMenu: () => void;
+  closeCreateMenu: () => void;
+  exploreSearchOpen: boolean;
+  toggleExploreSearch: () => void;
+  registerActions: (actions: Partial<TabHeaderActions>) => void;
   scrollToTop: () => void;
 };
 
@@ -17,8 +20,9 @@ const TabHeaderContext = createContext<TabHeaderContextValue | null>(null);
 
 export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
+  const [createMenuVisible, setCreateMenuVisible] = useState(false);
+  const [exploreSearchOpen, setExploreSearchOpen] = useState(false);
   const actionsRef = useRef<TabHeaderActions>({
-    openCreateMenu: null,
     scrollToTop: null,
   });
 
@@ -26,9 +30,9 @@ export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
     actionsRef.current = { ...actionsRef.current, ...actions };
   }, []);
 
-  const openCreateMenu = useCallback(() => {
-    actionsRef.current.openCreateMenu?.();
-  }, []);
+  const openCreateMenu = useCallback(() => setCreateMenuVisible(true), []);
+  const closeCreateMenu = useCallback(() => setCreateMenuVisible(false), []);
+  const toggleExploreSearch = useCallback(() => setExploreSearchOpen((v) => !v), []);
 
   const scrollToTop = useCallback(() => {
     actionsRef.current.scrollToTop?.();
@@ -38,11 +42,24 @@ export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
     () => ({
       unreadCount,
       setUnreadCount,
-      registerActions,
+      createMenuVisible,
       openCreateMenu,
+      closeCreateMenu,
+      exploreSearchOpen,
+      toggleExploreSearch,
+      registerActions,
       scrollToTop,
     }),
-    [unreadCount, registerActions, openCreateMenu, scrollToTop]
+    [
+      unreadCount,
+      createMenuVisible,
+      exploreSearchOpen,
+      openCreateMenu,
+      closeCreateMenu,
+      toggleExploreSearch,
+      registerActions,
+      scrollToTop,
+    ]
   );
 
   return <TabHeaderContext.Provider value={value}>{children}</TabHeaderContext.Provider>;

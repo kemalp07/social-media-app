@@ -3,7 +3,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  Alert,
   FlatList,
   Image,
   Pressable,
@@ -13,7 +12,6 @@ import {
 } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
-import { StatBox } from '@/components/StatBox';
 import { useUser } from '@/context/UserContext';
 import * as api from '@/lib/api';
 import { colors, spacing } from '@/constants/colors';
@@ -28,8 +26,17 @@ function getLevel(count: number): string {
   return 'Yeni Başlayan';
 }
 
+function ProfileStat({ value, label }: { value: string | number; label: string }) {
+  return (
+    <View style={styles.statItem}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
-  const { user, logout } = useUser();
+  const { user } = useUser();
   const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -53,20 +60,6 @@ export default function ProfileScreen() {
     if (!result.canceled) setAvatarUri(result.assets[0].uri);
   };
 
-  const openSettings = () => {
-    Alert.alert('Ayarlar', undefined, [
-      { text: 'İptal', style: 'cancel' },
-      {
-        text: 'Çıkış Yap',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/onboarding');
-        },
-      },
-    ]);
-  };
-
   return (
     <View style={styles.screen}>
       <FlatList
@@ -78,41 +71,36 @@ export default function ProfileScreen() {
         {...listScrollProps}
         ListHeaderComponent={
           <View style={styles.profileSection}>
-            <View style={styles.settingsRow}>
-              <Pressable onPress={openSettings} style={styles.settingsBtn} hitSlop={8}>
-                <Ionicons name="settings-outline" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-
-            <View style={styles.profileHeader}>
+            <View style={styles.topRow}>
               <Pressable onPress={pickAvatar} style={styles.avatarWrap}>
                 {avatarUri ? (
                   <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
                 ) : (
-                  <Avatar uri={user.avatar_url} name={user.display_name} size={90} />
+                  <Avatar uri={user.avatar_url} name={user.display_name} size={86} />
                 )}
-                <View style={styles.avatarEditBadge}>
-                  <Ionicons name="camera" size={14} color="#fff" />
-                </View>
               </Pressable>
-              <Text style={styles.name}>{user.display_name}</Text>
-              <Text style={styles.username}>@{user.username}</Text>
-              <Text style={styles.level}>{getLevel(user.follower_count)}</Text>
-              {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+
+              <View style={styles.statsRow}>
+                <ProfileStat value={user.post_count} label="gönderi" />
+                <ProfileStat
+                  value={user.follower_count.toLocaleString('tr-TR')}
+                  label="takipçi"
+                />
+                <ProfileStat
+                  value={user.total_likes_received.toLocaleString('tr-TR')}
+                  label="beğeni"
+                />
+              </View>
             </View>
 
-            <View style={styles.stats}>
-              <StatBox label="Gönderi" value={user.post_count} />
-              <StatBox
-                label="Takipçi"
-                value={user.follower_count.toLocaleString('tr-TR')}
-                highlight
-              />
-              <StatBox
-                label="Beğeni"
-                value={user.total_likes_received.toLocaleString('tr-TR')}
-              />
-            </View>
+            <Text style={styles.name}>{user.display_name}</Text>
+            <Text style={styles.username}>@{user.username}</Text>
+            <Text style={styles.level}>{getLevel(user.follower_count)}</Text>
+            {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+
+            <Pressable style={styles.editBtn} onPress={pickAvatar}>
+              <Text style={styles.editBtnText}>Profili Düzenle</Text>
+            </Pressable>
 
             <Text style={styles.gridTitle}>Gönderiler</Text>
           </View>
@@ -138,37 +126,40 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000000' },
   list: { flex: 1 },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: TAB_BAR_HEIGHT },
-  profileSection: { paddingTop: spacing.sm },
-  settingsRow: { alignItems: 'flex-end', marginBottom: spacing.xs },
-  settingsBtn: { padding: spacing.xs },
-  profileHeader: { alignItems: 'center', marginBottom: spacing.lg },
-  avatarWrap: { position: 'relative' },
-  avatarImage: { width: 90, height: 90, borderRadius: 45 },
-  avatarEditBadge: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.bg,
-  },
-  name: { color: colors.text, fontSize: 22, fontWeight: '700', marginTop: spacing.md },
-  username: { color: colors.textMuted, fontSize: 14 },
-  level: { color: colors.secondary, fontWeight: '700', marginTop: spacing.sm },
-  bio: { color: colors.textMuted, textAlign: 'center', marginTop: spacing.sm },
-  stats: {
+  listContent: { paddingHorizontal: spacing.md, paddingBottom: TAB_BAR_HEIGHT },
+  profileSection: { paddingTop: spacing.md, paddingBottom: spacing.sm },
+  topRow: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.lg,
   },
+  avatarWrap: { flexShrink: 0 },
+  avatarImage: { width: 86, height: 86, borderRadius: 43 },
+  statsRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  statItem: { alignItems: 'center' },
+  statValue: { color: colors.text, fontSize: 18, fontWeight: '700' },
+  statLabel: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  name: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  username: { color: colors.textMuted, fontSize: 14, marginTop: 2 },
+  level: { color: colors.secondary, fontWeight: '600', fontSize: 13, marginTop: spacing.xs },
+  bio: { color: colors.text, fontSize: 14, marginTop: spacing.sm, lineHeight: 20 },
+  editBtn: {
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+  },
+  editBtnText: { color: colors.text, fontWeight: '600', fontSize: 14 },
   gridTitle: { color: colors.text, fontWeight: '700', marginBottom: spacing.sm },
   gridItem: { width: '33.33%', aspectRatio: 1, padding: 1, position: 'relative' },
   gridImage: { width: '100%', height: '100%' },
