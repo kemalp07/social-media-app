@@ -7,9 +7,10 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import User
+from app.models import FakeUser, Follow, User
 from app.schemas import FCMTokenUpdate, UserCreate, UserResponse
-from app.serializers import user_to_dict
+from app.serializers import fake_user_to_dict, user_to_dict
+from app.services.avatar_service import dicebear_url
 from app.services.onboarding_service import create_welcome_package
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,26 @@ async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
         await db.rollback()
         logger.exception("Unexpected error creating user %s: %s", data.username, e)
         raise HTTPException(status_code=500, detail="Hesap oluşturulamadı")
+
+
+@router.get("/{user_id}/following")
+async def get_following(user_id: UUID, db: AsyncSession = Depends(get_db)):
+    user_result = await db.execute(select(User.id).where(User.id == user_id))
+    if not user_result.scalar_one_or_none():
+        raise HTTPException(404, "User not found")
+
+    result = await db.execute(
+        select(FakeUser)
+        .join(Follow, Follow.fake_user_id == FakeUser.id)
+        .where(Follow.user_id == user_id)
+        .order_by(Follow.created_at)
+    )
+    following = []
+    for fake_user in result.scalars().all():
+        data = fake_user_to_dict(fake_user)
+        data["avatar_url"] = data.get("avatar_url") or dicebear_url(fake_user.avatar_seed)
+        following.append(data)
+    return following
 
 
 @router.get("/{user_id}", response_model=UserResponse)

@@ -126,6 +126,11 @@ export default function Onboarding() {
             <Pressable style={styles.btn} onPress={() => setStep(1)}>
               <Text style={styles.btnText}>Başlayalım →</Text>
             </Pressable>
+            <Pressable onPress={() => router.push('/login')} style={styles.loginLink}>
+              <Text style={styles.loginText}>
+                Zaten hesabın var mı? <Text style={styles.loginHighlight}>Giriş yap</Text>
+              </Text>
+            </Pressable>
           </View>
         )}
 
@@ -208,8 +213,7 @@ export default function Onboarding() {
         {step === 3 && (
           <View style={styles.step}>
             <Text style={styles.stepTitle}>Hesabın oluşturuldu!</Text>
-            <Text style={styles.subtitle}>İlk postunu atmaya hazır mısın?</Text>
-            <Text style={styles.followerStart}>0 takipçi</Text>
+            <Text style={styles.subtitle}>Hesabın hazır, macera başlıyor! ✨</Text>
             <Pressable style={styles.btn} onPress={handleFinish} disabled={loading}>
               {loading ? (
                 <ActivityIndicator color="#fff" />
@@ -247,7 +251,6 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: spacing.lg },
   subtitle: { color: colors.textMuted, fontSize: 15, textAlign: 'center', lineHeight: 22 },
   stepTitle: { color: colors.text, fontSize: 24, fontWeight: '700' },
-  followerStart: { color: colors.secondary, fontSize: 32, fontWeight: '800' },
   avatarPicker: {
     width: 100,
     height: 100,
@@ -280,6 +283,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   btnText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  loginLink: { marginTop: spacing.sm, padding: spacing.sm },
+  loginText: { color: colors.textMuted, fontSize: 15 },
+  loginHighlight: { color: colors.primary, fontWeight: '700' },
   modeCard: {
     width: '100%',
     backgroundColor: colors.surface,

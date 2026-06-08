@@ -68,8 +68,12 @@ export default function FeedScreen() {
   }, [user?.id, user?.post_count, load, setLoading]);
 
   useEffect(() => {
-    api.getTier1Characters().then(setStories).catch(() => setStories([]));
-  }, []);
+    if (!user?.id) {
+      setStories([]);
+      return;
+    }
+    api.getFollowing(user.id).then(setStories).catch(() => setStories([]));
+  }, [user?.id]);
 
   const openOwnStory = () => {
     if (hasOwnStory) {

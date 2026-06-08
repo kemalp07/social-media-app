@@ -3,7 +3,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.database import AsyncSessionLocal
 from app.services.dm_service import initiate_bot_dms
 from app.services.engagement_service import deliver_pending_likes
-from app.services.growth_service import daily_fake_posts, organic_growth
+from app.services.growth_service import daily_fake_posts, passive_growth
 from app.services.notification_service import send_daily_digest
 
 scheduler = AsyncIOScheduler()
@@ -11,7 +11,7 @@ scheduler = AsyncIOScheduler()
 
 def setup_scheduler():
     scheduler.add_job(_deliver_likes, "interval", minutes=1, id="deliver_likes")
-    scheduler.add_job(_organic_growth, "interval", hours=1, id="organic_growth")
+    scheduler.add_job(_passive_growth, "interval", hours=1, id="passive_growth")
     scheduler.add_job(_daily_dm, "cron", hour=10, id="daily_dm")
     scheduler.add_job(_daily_fake_posts, "cron", hour=8, id="daily_fake_posts")
     scheduler.add_job(_daily_digest_all, "cron", hour=9, id="daily_digest")
@@ -24,9 +24,9 @@ async def _deliver_likes():
         await session.commit()
 
 
-async def _organic_growth():
+async def _passive_growth():
     async with AsyncSessionLocal() as session:
-        await organic_growth(session)
+        await passive_growth(session)
         await session.commit()
 
 

@@ -3,11 +3,12 @@ import random
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import FakePost, FakeUser, FollowerGrowthLog, Milestone, Post, User
-from app.services.notification_service import create_notification, send_push
+from app.models import FakePost, FakeUser, Follow, FollowerGrowthLog, Milestone, Post, User
+from app.services.notification_service import create_notification, notify_follower_growth, send_push
 
 FOLLOWER_MILESTONES = [
     (100, "followers_100", "İlk yüzünü kırdın! 🎉 Yolculuk başlıyor..."),
@@ -50,35 +51,151 @@ def get_user_level(follower_count: int) -> str:
     return "beginner"
 
 
-async def organic_growth(session: AsyncSession) -> int:
+def _split_growth_tiers(amount: int) -> tuple[int, int, int]:
+    if amount <= 0:
+        return 0, 0, 0
+    if amount == 1:
+        return 1, 0, 0
+    if amount == 2:
+        return 1, 1, 0
+
+    tier1_count = max(1, int(amount * 0.05))
+    tier2_count = max(1, int(amount * 0.10))
+    tier3_count = max(0, amount - tier1_count - tier2_count)
+
+    while tier1_count + tier2_count + tier3_count > amount:
+        if tier3_count > 0:
+            tier3_count -= 1
+        elif tier2_count > 1:
+            tier2_count -= 1
+        else:
+            tier1_count -= 1
+
+    return tier1_count, tier2_count, tier3_count
+
+
+async def calculate_growth_amount(session: AsyncSession, user: User) -> int:
+    now = datetime.now(timezone.utc)
+
+    recent_post = await session.execute(
+        select(Post.id)
+        .where(Post.user_id == user.id, Post.created_at >= now - timedelta(days=7))
+        .limit(1)
+    )
+    if not recent_post.scalar_one_or_none():
+        return random.randint(1, 3)
+
+    viral_result = await session.execute(
+        select(Post.id)
+        .where(
+            Post.user_id == user.id,
+            Post.is_viral == True,
+            Post.created_at >= now - timedelta(hours=48),
+        )
+        .limit(1)
+    )
+    if viral_result.scalar_one_or_none():
+        return random.randint(50, 200)
+
+    return random.randint(5, 15)
+
+
+async def apply_follower_growth(
+    session: AsyncSession,
+    user_id: UUID,
+    amount: int,
+) -> dict:
+    if amount <= 0:
+        return {"tier1": 0, "tier2": 0, "tier3": 0, "total": 0}
+
+    tier1_count, tier2_count, tier3_count = _split_growth_tiers(amount)
+    tier1_users: list[FakeUser] = []
+    tier2_users: list[FakeUser] = []
+    new_follows = 0
+
+    if tier1_count > 0:
+        tier1_result = await session.execute(
+            select(FakeUser)
+            .where(FakeUser.tier == 1)
+            .order_by(func.random())
+            .limit(tier1_count)
+        )
+        tier1_users = list(tier1_result.scalars().all())
+        for fu in tier1_users:
+            result = await session.execute(
+                pg_insert(Follow)
+                .values(user_id=user_id, fake_user_id=fu.id)
+                .on_conflict_do_nothing(index_elements=["user_id", "fake_user_id"])
+                .returning(Follow.id)
+            )
+            if result.scalar_one_or_none():
+                new_follows += 1
+
+    if tier2_count > 0:
+        tier2_result = await session.execute(
+            select(FakeUser)
+            .where(FakeUser.tier == 2)
+            .order_by(func.random())
+            .limit(tier2_count)
+        )
+        tier2_users = list(tier2_result.scalars().all())
+        for fu in tier2_users:
+            result = await session.execute(
+                pg_insert(Follow)
+                .values(user_id=user_id, fake_user_id=fu.id)
+                .on_conflict_do_nothing(index_elements=["user_id", "fake_user_id"])
+                .returning(Follow.id)
+            )
+            if result.scalar_one_or_none():
+                new_follows += 1
+
+    user_result = await session.execute(select(User).where(User.id == user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        return {"tier1": 0, "tier2": 0, "tier3": 0, "total": 0}
+
+    user.follower_count = (user.follower_count or 0) + amount
+    user.following_count = (user.following_count or 0) + new_follows
+    user.level = get_user_level(user.follower_count)
+
+    session.add(FollowerGrowthLog(user_id=user_id, amount=amount, reason="passive"))
+
+    await notify_follower_growth(
+        session,
+        user_id,
+        tier1_users,
+        tier2_users,
+        tier3_count,
+        total=amount,
+    )
+    await check_milestones(session, user_id, follower_count=user.follower_count)
+
+    return {
+        "tier1": tier1_count,
+        "tier2": tier2_count,
+        "tier3": tier3_count,
+        "total": amount,
+    }
+
+
+async def passive_growth(session: AsyncSession) -> int:
     now = datetime.now(timezone.utc)
     result = await session.execute(select(User))
     users = result.scalars().all()
     total = 0
 
     for user in users:
-        gain = random.randint(2, 8)
-        if user.last_active:
-            la = user.last_active.replace(tzinfo=timezone.utc) if user.last_active.tzinfo is None else user.last_active
-            if (now - la).days > 7:
-                gain = max(1, gain // 2)
-
-        viral_result = await session.execute(
-            select(Post.id)
-            .where(Post.user_id == user.id, Post.is_viral == True, Post.created_at >= now - timedelta(hours=48))
-            .limit(1)
-        )
-        if viral_result.scalar_one_or_none():
-            gain += random.randint(50, 200)
-
-        user.follower_count = (user.follower_count or 0) + gain
-        user.level = get_user_level(user.follower_count)
+        amount = await calculate_growth_amount(session, user)
+        await apply_follower_growth(session, user.id, amount)
         user.last_active = now
-        session.add(FollowerGrowthLog(user_id=user.id, amount=gain, reason="organic"))
-        await check_milestones(session, user.id, follower_count=user.follower_count)
-        total += gain
+        total += amount
 
     return total
+
+
+async def organic_growth(session: AsyncSession) -> int:
+    """Saatlik pasif büyüme job'ı için alias."""
+    return await passive_growth(session)
 
 
 async def daily_fake_posts(session: AsyncSession) -> int:

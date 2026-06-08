@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Comment, Conversation, FakeUser, Message, Notification, Post, User
+from app.models import Comment, Conversation, FakeUser, Follow, Message, Notification, Post, User
 from app.services.growth_service import get_user_level
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,16 @@ async def create_welcome_package(user_id: UUID, db: AsyncSession) -> None:
         logger.warning("Welcome package skipped: user not found id=%s", user_id)
         return
 
+    tier1_follow_result = await db.execute(
+        select(FakeUser).where(FakeUser.tier == 1).order_by(FakeUser.username).limit(8)
+    )
+    tier1_follow_list = tier1_follow_result.scalars().all()
+    if len(tier1_follow_list) < 8:
+        logger.warning(
+            "Welcome package: only %d tier-1 fake users for follows (need 8)",
+            len(tier1_follow_list),
+        )
+
     await db.execute(
         update(User)
         .where(User.id == user_id)
@@ -56,9 +66,13 @@ async def create_welcome_package(user_id: UUID, db: AsyncSession) -> None:
             follower_count=10_000,
             post_count=1,
             total_likes_received=347,
+            following_count=len(tier1_follow_list),
             level=get_user_level(10_000),
         )
     )
+
+    for fu in tier1_follow_list:
+        db.add(Follow(user_id=user_id, fake_user_id=fu.id))
 
     post = Post(
         user_id=user_id,
@@ -127,9 +141,10 @@ async def create_welcome_package(user_id: UUID, db: AsyncSession) -> None:
 
     await db.flush()
     logger.info(
-        "Welcome package created for user=%s post=%s comments=%d dms=%d notifications=%d",
+        "Welcome package created for user=%s post=%s follows=%d comments=%d dms=%d notifications=%d",
         user_id,
         post.id,
+        len(tier1_follow_list),
         min(len(tier1_list), len(COMMENT_TEXTS)),
         min(len(tier1_dm_list), len(DM_MESSAGES)),
         len(NOTIFICATIONS),

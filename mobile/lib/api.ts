@@ -116,6 +116,11 @@ export async function getExplorePosts(): Promise<{ id: string; image_url: string
   return data;
 }
 
+export async function getFollowing(userId: string): Promise<FakeUser[]> {
+  const { data } = await client.get<FakeUser[]>(`/users/${userId}/following`);
+  return data;
+}
+
 export async function getTier1Characters(): Promise<FakeUser[]> {
   const { data } = await client.get<FakeUser[]>('/fake-users/tier1/list');
   return data;

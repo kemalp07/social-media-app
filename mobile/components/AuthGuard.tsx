@@ -19,7 +19,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     if (!user && !isPublic) {
-      router.replace('/login');
+      router.replace('/onboarding');
       return;
     }
 

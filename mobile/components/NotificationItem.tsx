@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/colors';
+import { enrichFollowNotification } from '@/lib/notifications';
 import type { Notification } from '@/lib/types';
 
 const TYPE_CONFIG: Record<string, { emoji: string; bg?: string }> = {
@@ -31,6 +32,8 @@ export function NotificationItem({ item, onPress }: Props) {
   const config = TYPE_CONFIG[item.type] ?? { emoji: '📌' };
   const emoji = getNotificationEmoji(item);
   const isStoryReaction = item.type === 'story_reaction';
+  const displayContent =
+    item.type === 'follow' ? enrichFollowNotification(item.content) : item.content;
 
   return (
     <Pressable
@@ -45,7 +48,7 @@ export function NotificationItem({ item, onPress }: Props) {
       <Text style={[styles.emoji, isStoryReaction && styles.storyReactionEmoji]}>{emoji}</Text>
       <View style={styles.content}>
         <Text style={[styles.text, isStoryReaction && styles.storyReactionText]}>
-          {item.content}
+          {displayContent}
         </Text>
         <Text style={styles.time}>
           {new Date(item.created_at).toLocaleString('tr-TR')}
