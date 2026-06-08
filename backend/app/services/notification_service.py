@@ -72,6 +72,23 @@ async def notify_dm(session: AsyncSession, user_id: UUID | str, fake_user: dict,
     await create_notification(session, user_id, "dm", f"{name} sana mesaj gönderdi", fake_user.get("id"))
 
 
+async def notify_story_reaction(
+    session: AsyncSession,
+    user_id: UUID | str,
+    username: str,
+    reaction: str = "❤️",
+    from_fake_user_id: UUID | str | None = None,
+) -> None:
+    content = f"@{username} hikayene {reaction} tepkisi verdi"
+    await create_notification(
+        session,
+        user_id,
+        "story_reaction",
+        content,
+        from_fake_user_id=from_fake_user_id,
+    )
+
+
 async def send_daily_digest(session: AsyncSession, user_id: UUID | str) -> None:
     uid = UUID(str(user_id))
     from app.models import Conversation

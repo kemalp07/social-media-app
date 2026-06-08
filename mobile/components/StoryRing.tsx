@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -5,6 +6,8 @@ import { colors } from '@/constants/colors';
 import { resolveAvatarUri } from '@/lib/avatar';
 
 const GRADIENT = ['#378ADD', '#1D9E75'] as const;
+const AVATAR_SIZE = 58;
+const RING_SIZE = AVATAR_SIZE + 8;
 
 interface Props {
   name: string;
@@ -16,79 +19,95 @@ interface Props {
 
 export function StoryRing({ name, avatarUrl, isOwn, hasStory = true, onPress }: Props) {
   const imageUri = resolveAvatarUri(avatarUrl, name);
+  const displayName = isOwn ? 'Sen' : name.split(' ')[0];
 
-  const ringContent = (
+  const avatar = (
     <View style={styles.avatarWrap}>
       <Image source={{ uri: imageUri }} style={styles.avatar} />
-      {isOwn && <Text style={styles.plus}>+</Text>}
+      {isOwn && !hasStory && (
+        <View style={styles.plusBadge}>
+          <Ionicons name="add" size={14} color="#ffffff" />
+        </View>
+      )}
     </View>
   );
 
+  const showGradient = hasStory;
+
   return (
     <Pressable style={styles.container} onPress={onPress}>
-      {hasStory && !isOwn ? (
+      {showGradient ? (
         <LinearGradient
           colors={[...GRADIENT]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientRing}
         >
-          <View style={styles.innerRing}>{ringContent}</View>
+          <View style={styles.innerRing}>{avatar}</View>
         </LinearGradient>
       ) : (
-        <View style={[styles.plainRing, isOwn && styles.ownRing]}>{ringContent}</View>
+        <View style={[styles.plainRing, isOwn && styles.ownRing]}>{avatar}</View>
       )}
       <Text style={styles.name} numberOfLines={1}>
-        {isOwn ? 'Hikayen' : name.split(' ')[0]}
+        {displayName}
       </Text>
     </Pressable>
   );
 }
 
-const AVATAR_SIZE = 56;
-
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', width: 76, marginRight: 10 },
+  container: { alignItems: 'center', width: 78, marginRight: 12 },
   gradientRing: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    borderRadius: RING_SIZE / 2,
     padding: 2.5,
-    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   innerRing: {
     backgroundColor: colors.bg,
-    borderRadius: 31,
+    borderRadius: (RING_SIZE - 5) / 2,
     padding: 2,
   },
   plainRing: {
-    padding: 2,
-    borderRadius: 32,
+    width: RING_SIZE,
+    height: RING_SIZE,
+    borderRadius: RING_SIZE / 2,
     borderWidth: 2.5,
     borderColor: '#378ADD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
   },
   ownRing: {
-    borderColor: colors.textMuted,
+    borderColor: colors.border,
   },
   avatarWrap: { position: 'relative' },
   avatar: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: colors.surface,
   },
-  plus: {
+  plusBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    right: -2,
+    bottom: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.primary,
-    color: '#fff',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 18,
-    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: colors.bg,
   },
-  name: { color: colors.text, fontSize: 11, marginTop: 6, maxWidth: 72 },
+  name: {
+    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: 6,
+    maxWidth: 74,
+    textAlign: 'center',
+  },
 });

@@ -14,6 +14,7 @@ import {
 
 import { PostCard } from '@/components/PostCard';
 import { StoryRing } from '@/components/StoryRing';
+import { StoryViewModal } from '@/components/StoryViewModal';
 import { useTabHeader } from '@/context/TabHeaderContext';
 import { useUser } from '@/context/UserContext';
 import { useFeed } from '@/hooks/useFeed';
@@ -22,13 +23,18 @@ import { colors, spacing } from '@/constants/colors';
 import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
 import type { FakeUser } from '@/lib/types';
 
+type StoryPreview = { name: string; avatarUrl?: string | null; isOwn?: boolean };
+
 export default function FeedScreen() {
   const { user } = useUser();
   const router = useRouter();
-  const { setUnreadCount, registerActions, openCreateMenu } = useTabHeader();
+  const { setUnreadCount, registerActions } = useTabHeader();
   const { posts, loading, setLoading, refreshing, load, refresh } = useFeed(user?.id);
   const [stories, setStories] = useState<FakeUser[]>([]);
+  const [activeStory, setActiveStory] = useState<StoryPreview | null>(null);
   const listRef = useRef<FlatList>(null);
+
+  const hasOwnStory = (user?.post_count ?? 0) > 0;
 
   const scrollToTop = useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -60,6 +66,26 @@ export default function FeedScreen() {
   useEffect(() => {
     api.getTier1Characters().then(setStories).catch(() => setStories([]));
   }, []);
+
+  const openOwnStory = () => {
+    if (hasOwnStory && user) {
+      setActiveStory({
+        name: user.display_name,
+        avatarUrl: user.avatar_url,
+        isOwn: true,
+      });
+      return;
+    }
+    router.push('/(tabs)/create');
+  };
+
+  const openCharacterStory = (character: FakeUser) => {
+    setActiveStory({
+      name: character.display_name,
+      avatarUrl: character.avatar_url,
+      isOwn: false,
+    });
+  };
 
   if (loading) {
     return (
@@ -102,15 +128,15 @@ export default function FeedScreen() {
               name={user?.display_name ?? 'Sen'}
               avatarUrl={user?.avatar_url}
               isOwn
-              hasStory={false}
-              onPress={openCreateMenu}
+              hasStory={hasOwnStory}
+              onPress={openOwnStory}
             />
             {stories.slice(0, 12).map((s) => (
               <StoryRing
                 key={s.id}
                 name={s.display_name}
                 avatarUrl={s.avatar_url}
-                onPress={() => router.push('/characters')}
+                onPress={() => openCharacterStory(s)}
               />
             ))}
           </ScrollView>
@@ -125,6 +151,14 @@ export default function FeedScreen() {
             <Text style={styles.emptyText}>İlk fotoğrafını paylaş!</Text>
           </View>
         }
+      />
+
+      <StoryViewModal
+        visible={!!activeStory}
+        name={activeStory?.name ?? ''}
+        avatarUrl={activeStory?.avatarUrl}
+        isOwn={activeStory?.isOwn}
+        onClose={() => setActiveStory(null)}
       />
     </View>
   );

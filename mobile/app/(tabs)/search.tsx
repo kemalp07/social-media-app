@@ -1,6 +1,5 @@
-import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { colors, spacing } from '@/constants/colors';
@@ -8,7 +7,6 @@ import * as api from '@/lib/api';
 import type { FakeUser } from '@/lib/types';
 
 export default function SearchScreen() {
-  const router = useRouter();
   const [characters, setCharacters] = useState<FakeUser[]>([]);
 
   useEffect(() => {
@@ -23,7 +21,7 @@ export default function SearchScreen() {
       contentContainerStyle={styles.list}
       ListHeaderComponent={<Text style={styles.header}>Ara — Tier 1 Karakterler</Text>}
       renderItem={({ item }) => (
-        <Pressable style={styles.card} onPress={() => router.push('/characters')}>
+        <View style={styles.card}>
           <Avatar uri={item.avatar_url} name={item.display_name} size={48} />
           <View style={styles.info}>
             <Text style={styles.name}>{item.display_name}</Text>
@@ -31,7 +29,7 @@ export default function SearchScreen() {
             {item.bio ? <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text> : null}
           </View>
           <Text style={styles.followers}>{item.follower_count?.toLocaleString('tr-TR') ?? 0}</Text>
-        </Pressable>
+        </View>
       )}
     />
   );

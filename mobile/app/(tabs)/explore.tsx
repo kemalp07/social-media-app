@@ -1,10 +1,8 @@
-import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   FlatList,
   Image,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -30,7 +28,6 @@ function resolveImageUrl(url: string): string {
 }
 
 export default function ExploreScreen() {
-  const router = useRouter();
   const { exploreSearchOpen } = useTabHeader();
   const [posts, setPosts] = useState<ExploreItem[]>([]);
   const [query, setQuery] = useState('');
@@ -77,10 +74,7 @@ export default function ExploreScreen() {
           </Text>
         }
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.tile}
-            onPress={() => router.push('/characters')}
-          >
+          <View style={styles.tile}>
             {item.image_url ? (
               <Image
                 source={{ uri: resolveImageUrl(item.image_url) }}
@@ -90,7 +84,7 @@ export default function ExploreScreen() {
             ) : (
               <View style={styles.tilePlaceholder} />
             )}
-          </Pressable>
+          </View>
         )}
       />
     </View>

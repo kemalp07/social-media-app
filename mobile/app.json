@@ -13,7 +13,11 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Fotoğraf çekmek ve paylaşmak için kamera erişimi gerekli.",
+        "NSPhotoLibraryUsageDescription": "Galeriden fotoğraf seçmek için erişim gerekli."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -33,7 +37,23 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Gönderi paylaşmak için galeri erişimi gerekli."
+          "photosPermission": "Gönderi paylaşmak için galeri erişimi gerekli.",
+          "cameraPermission": "Fotoğraf çekmek için kamera erişimi gerekli."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Fotoğraf çekmek ve paylaşmak için kamera erişimi gerekli.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Son fotoğrafını göstermek ve galeriden seçmek için erişim gerekli.",
+          "savePhotosPermission": "Fotoğrafları kaydetmek için erişim gerekli."
         }
       ]
     ],

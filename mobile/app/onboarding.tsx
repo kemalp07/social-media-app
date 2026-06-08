@@ -20,12 +20,14 @@ import { VibeLogo } from '@/components/VibeLogo';
 import { useUser } from '@/context/UserContext';
 import { colors, spacing } from '@/constants/colors';
 import { API_URL } from '@/lib/config';
+import { setGameMode, type GameMode } from '@/lib/storage';
 
-const STEPS = ['welcome', 'profile', 'ready'] as const;
+const STEPS = ['welcome', 'profile', 'gameMode', 'ready'] as const;
 
 const ONBOARDING_BACKGROUNDS = [
   require('../assets/splash/onboarding_1.png'),
   require('../assets/splash/onboarding_2.png'),
+  require('../assets/splash/onboarding_3.png'),
   require('../assets/splash/onboarding_3.png'),
 ] as const;
 
@@ -37,6 +39,7 @@ export default function Onboarding() {
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [gameMode, setGameModeSelection] = useState<GameMode>('real');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -168,6 +171,41 @@ export default function Onboarding() {
 
         {step === 2 && (
           <View style={styles.step}>
+            <Text style={styles.stepTitle}>Nasıl oynamak istersin?</Text>
+            <Text style={styles.subtitle}>İstediğin zaman değiştirebilirsin</Text>
+
+            <Pressable
+              style={[styles.modeCard, gameMode === 'real' && styles.modeCardSelected]}
+              onPress={() => setGameModeSelection('real')}
+            >
+              <Text style={styles.modeCardTitle}>📷 Gerçek Mod</Text>
+              <Text style={styles.modeCardDesc}>Kendi fotoğraflarını çek ve paylaş</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.modeCard, gameMode === 'character' && styles.modeCardSelected]}
+              onPress={() => setGameModeSelection('character')}
+            >
+              <Text style={styles.modeCardTitle}>🎭 Karakter Modu</Text>
+              <Text style={styles.modeCardDesc}>
+                Hazır fotoğraflardan seç, kim olduğun bilinmesin
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.btn}
+              onPress={async () => {
+                await setGameMode(gameMode);
+                setStep(3);
+              }}
+            >
+              <Text style={styles.btnText}>Başla →</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {step === 3 && (
+          <View style={styles.step}>
             <Text style={styles.stepTitle}>Hesabın oluşturuldu!</Text>
             <Text style={styles.subtitle}>İlk postunu atmaya hazır mısın?</Text>
             <Text style={styles.followerStart}>0 takipçi</Text>
@@ -241,4 +279,27 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   btnText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  modeCard: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.border,
+    gap: spacing.xs,
+  },
+  modeCardSelected: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(55, 138, 221, 0.12)',
+  },
+  modeCardTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modeCardDesc: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
 });
