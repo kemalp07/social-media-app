@@ -23,7 +23,7 @@ export default function ProfileScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
-    if (user) api.getFeed(user.id).then(setPosts).catch(() => setPosts([]));
+    if (user) api.getUserPosts(user.id).then(setPosts).catch(() => setPosts([]));
   }, [user]);
 
   if (!user) return null;
@@ -53,13 +53,19 @@ export default function ProfileScreen() {
 
       <Text style={styles.gridTitle}>Gönderiler</Text>
       <FlatList
-        data={posts.filter((p) => (p as Post & { is_own?: boolean }).is_own !== false)}
+        data={posts}
         keyExtractor={(item) => item.id}
         numColumns={3}
         scrollEnabled={false}
         renderItem={({ item }) => (
           <Pressable style={styles.gridItem} onPress={() => router.push(`/post/${item.id}`)}>
-            <Image source={{ uri: item.image_url }} style={styles.gridImage} />
+            {item.image_url?.trim() ? (
+              <Image source={{ uri: item.image_url }} style={styles.gridImage} />
+            ) : (
+              <View style={styles.gridPlaceholder}>
+                <Text style={styles.gridPlaceholderIcon}>📷</Text>
+              </View>
+            )}
             {item.is_viral && <Text style={styles.viralIcon}>🔥</Text>}
           </Pressable>
         )}
@@ -88,6 +94,11 @@ const styles = StyleSheet.create({
   gridTitle: { color: colors.text, fontWeight: '700', marginBottom: spacing.sm },
   gridItem: { width: '33.33%', aspectRatio: 1, padding: 1, position: 'relative' },
   gridImage: { width: '100%', height: '100%' },
+  gridPlaceholder: {
+    width: '100%', height: '100%', backgroundColor: colors.surface,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  gridPlaceholderIcon: { fontSize: 24, opacity: 0.5 },
   viralIcon: { position: 'absolute', top: 6, right: 6, fontSize: 14 },
   emptyGrid: { color: colors.textMuted, textAlign: 'center', padding: spacing.lg },
   logoutBtn: { alignItems: 'center', padding: spacing.lg },

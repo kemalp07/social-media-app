@@ -75,7 +75,14 @@ export function PostCard({ post }: Props) {
       </View>
 
       <Pressable onPress={handleDoubleTap}>
-        <Image source={{ uri: post.image_url }} style={styles.image} resizeMode="cover" />
+        {post.image_url?.trim() ? (
+          <Image source={{ uri: post.image_url }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Text style={styles.placeholderIcon}>📷</Text>
+            <Text style={styles.placeholderText}>Görsel yok</Text>
+          </View>
+        )}
         <Animated.Text
           style={[styles.bigHeart, { transform: [{ scale: heartScale }], opacity: heartScale }]}
         >
@@ -126,6 +133,16 @@ const styles = StyleSheet.create({
   time: { color: colors.textMuted, fontSize: 12 },
   viral: { fontSize: 16 },
   image: { width: '100%', aspectRatio: 1 },
+  imagePlaceholder: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  placeholderIcon: { fontSize: 48, opacity: 0.4 },
+  placeholderText: { color: colors.textMuted, fontSize: 14 },
   bigHeart: {
     position: 'absolute',
     alignSelf: 'center',

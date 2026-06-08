@@ -31,6 +31,11 @@ export async function getFeed(userId: string): Promise<Post[]> {
   return data;
 }
 
+export async function getUserPosts(userId: string): Promise<Post[]> {
+  const { data } = await client.get<Post[]>(`/posts/user/${userId}`);
+  return data;
+}
+
 export async function getPost(postId: string) {
   const { data } = await client.get(`/posts/${postId}`);
   return data;

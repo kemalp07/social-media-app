@@ -10,7 +10,6 @@ from app.database import get_db
 from app.models import User
 from app.schemas import FCMTokenUpdate, UserCreate, UserResponse
 from app.serializers import user_to_dict
-from app.services.avatar_service import dicebear_url
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +24,12 @@ async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=409, detail="Bu kullanıcı adı zaten alınmış")
 
     try:
+        username = data.username.strip().lower()
         user = User(
-            username=data.username.strip().lower(),
+            username=username,
             display_name=data.display_name.strip(),
             bio=(data.bio or "").strip(),
-            avatar_url=dicebear_url(data.username),
+            avatar_url=f"https://api.dicebear.com/7.x/avataaars/svg?seed={username}",
         )
         db.add(user)
         await db.flush()

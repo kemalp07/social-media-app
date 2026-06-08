@@ -28,6 +28,7 @@ export interface Post {
     display_name: string;
     avatar_url: string | null;
   };
+  is_own?: boolean;
 }
 
 export interface Comment {

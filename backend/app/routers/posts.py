@@ -47,6 +47,19 @@ async def get_feed(user_id: UUID, limit: int = 20, offset: int = 0, db: AsyncSes
     return [post_to_dict(p, include_user=True) for p in result.scalars().all()]
 
 
+@router.get("/user/{user_id}")
+async def get_user_posts(user_id: UUID, limit: int = 50, offset: int = 0, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Post)
+        .options(selectinload(Post.user))
+        .where(Post.user_id == user_id)
+        .order_by(Post.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return [post_to_dict(p, include_user=True) for p in result.scalars().all()]
+
+
 @router.get("/{post_id}")
 async def get_post(post_id: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
