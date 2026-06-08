@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 17, 23, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
   },
   container: { flex: 1, padding: spacing.lg, justifyContent: 'center' },
   dots: {

@@ -59,6 +59,7 @@ export default function NotificationsScreen() {
     <SectionList
       sections={sections}
       keyExtractor={(item) => item.id}
+      style={styles.screen}
       contentContainerStyle={styles.list}
       renderSectionHeader={({ section }) => (
         <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -83,6 +84,7 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.md },
   sectionTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '700', marginBottom: 8, marginTop: 8 },

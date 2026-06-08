@@ -27,28 +27,25 @@ LOCATION = "us-central1" if _env_location == "global" else _env_location
 # ─── STYLE PREFIX ─────────────────────────────────────────────────────────────
 # Tüm asset'lerde tutarlı Vibe visual dili
 ICON_STYLE = (
-    "Premium mobile app icon design, ultra detailed 3D render, "
-    "electric blue and cyan gradient color palette (#378ADD to #1D9E75), "
-    "dark background (#0f1117), soft volumetric glow, glass morphism effect, "
-    "clean modern aesthetic, no text, no letters, no watermark, "
-    "centered composition, square format, "
+    "Minimal flat UI icon, pure white icon on pure black background, "
+    "single color white, clean simple lines, no gradients, no shadows, no glow, "
+    "no 3D effect, no texture, flat design, "
+    "centered composition, square format, bold strokes, "
+    "mobile app icon style, no text, no letters, no watermark, "
 )
 
 SPLASH_STYLE = (
-    "Premium mobile app splash screen background, "
-    "deep dark navy background (#0f1117), "
-    "electric blue and cyan gradient light rays (#378ADD to #1D9E75), "
-    "abstract fluid shapes, bokeh light particles, "
-    "modern social media aesthetic, cinematic quality, "
-    "no text, no characters, no watermark, "
+    "Minimal flat illustration, pure white on pure black background, "
+    "single color white, clean simple shapes, no gradients, no shadows, "
+    "no 3D effect, flat design, bold strokes, "
+    "no text, no characters, no watermark, centered composition, "
 )
 
 MILESTONE_STYLE = (
-    "Premium celebration illustration, "
-    "dark background with electric blue and cyan gradient accents, "
-    "glowing particle effects, confetti, light burst, "
-    "social media achievement aesthetic, "
-    "luxury and premium feel, no text, no characters, no watermark, "
+    "Minimal flat illustration, pure white on pure black background, "
+    "single color white, clean simple shapes, no gradients, no shadows, "
+    "no 3D effect, flat design, bold strokes, "
+    "no text, no characters, no watermark, centered composition, "
 )
 
 # ─── ASSETS ───────────────────────────────────────────────────────────────────
@@ -122,145 +119,79 @@ ASSETS = {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D heart shape icon, glowing from within, "
-            "electric blue to cyan gradient surface, "
-            "glass-like translucent material with inner light, "
-            "subtle pulse energy effect, soft shadow below, "
-            "ultra detailed surface texture, premium feel"
-        ),
+        "prompt": "Simple heart shape icon, minimal flat white outline",
     },
     "icon_like_active": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D heart shape icon, fully lit and glowing intensely, "
-            "vibrant crimson red to hot pink gradient, "
-            "bright inner glow, light particles bursting outward, "
-            "energy explosion effect, premium mobile icon"
-        ),
+        "prompt": "Simple filled heart shape icon, minimal flat white solid",
     },
     "icon_comment": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D speech bubble icon, modern rounded square shape with small tail, "
-            "electric blue gradient surface, glass morphism effect, "
-            "subtle inner glow, three glowing dots inside suggesting typing, "
-            "floating with soft shadow, premium mobile UI icon"
-        ),
+        "prompt": "Simple speech bubble icon, minimal flat white outline, small tail at bottom",
     },
     "icon_share": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D share/send icon, paper airplane shape made of glowing crystal, "
-            "electric blue and cyan gradient, "
-            "light trail behind suggesting motion, "
-            "speed lines, dynamic angle, premium mobile UI icon"
-        ),
+        "prompt": "Simple paper airplane send icon, minimal flat white outline, pointing up-right",
     },
     "icon_save": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D bookmark ribbon icon, elegant curved ribbon shape, "
-            "deep blue gradient with cyan highlight edge, "
-            "glass-like surface with light refraction, "
-            "subtle glow, floating above surface, premium mobile icon"
-        ),
+        "prompt": "Simple bookmark ribbon icon, minimal flat white outline",
     },
     "icon_dm": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D direct message icon, envelope with lightning bolt or arrow, "
-            "electric blue glowing edges, "
-            "holographic surface effect, cyan gradient inside, "
-            "motion blur suggesting speed, premium mobile icon"
-        ),
+        "prompt": "Simple direct message envelope icon, minimal flat white outline with small arrow",
     },
     "icon_notification": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D bell notification icon, sleek modern bell shape, "
-            "electric blue to cyan gradient, "
-            "subtle vibration rings emanating outward, "
-            "glowing rim light, small star sparkles around, premium mobile icon"
-        ),
+        "prompt": "Simple bell notification icon, minimal flat white outline",
     },
     "icon_home": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D house home icon, modern minimal house silhouette, "
-            "electric blue gradient with cyan roof highlight, "
-            "glass material with inner illumination, "
-            "warm light coming from windows, premium mobile UI icon"
-        ),
+        "prompt": "Simple house home icon, minimal flat white outline, clean geometric shape",
     },
     "icon_explore": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D compass explore icon, circular compass with needle, "
-            "electric blue outer ring glowing, cyan needle pointing up-right, "
-            "glass face with depth, "
-            "subtle sparkles around edge, premium mobile UI icon"
-        ),
+        "prompt": "Simple compass or search icon, minimal flat white outline",
     },
     "icon_add_post": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D plus button icon, rounded square shape with plus symbol, "
-            "bright electric blue to cyan gradient, "
-            "strong inner glow, light burst from center, "
-            "premium call-to-action button icon, energy and excitement"
-        ),
+        "prompt": "Simple plus symbol icon, minimal flat white, bold clean lines",
     },
     "icon_profile": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D user profile icon, elegant silhouette of person in circle, "
-            "electric blue gradient ring border, "
-            "cyan inner glow, glass morphism surface, "
-            "premium identity icon, modern social media aesthetic"
-        ),
+        "prompt": "Simple person silhouette icon, minimal flat white outline, head and shoulders",
     },
     "icon_camera": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D camera icon, modern mirrorless camera body shape, "
-            "electric blue chassis with cyan lens ring, "
-            "glass lens with light refraction and bokeh inside, "
-            "premium photography aesthetic, detailed surface"
-        ),
+        "prompt": "Simple camera icon, minimal flat white outline, circle lens in center",
     },
     "icon_verified": {
         "category": "icons",
         "aspect": "1:1",
         "style": ICON_STYLE,
-        "prompt": (
-            "3D verified checkmark badge icon, hexagon or circle shield shape, "
-            "electric blue to cyan gradient surface, "
-            "bright white checkmark in center with inner glow, "
-            "premium quality seal, trust and authenticity"
-        ),
+        "prompt": "Simple checkmark badge icon, minimal flat white, circle with checkmark inside",
     },
 
     # ── MİLESTONE GÖRSELLERİ ──────────────────────────────────────────────────

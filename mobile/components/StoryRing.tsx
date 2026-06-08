@@ -1,6 +1,10 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+
 import { Avatar } from '@/components/Avatar';
 import { colors } from '@/constants/colors';
+
+const GRADIENT = ['#378ADD', '#1D9E75', '#378ADD'] as const;
 
 interface Props {
   name: string;
@@ -11,9 +15,11 @@ interface Props {
 }
 
 export function StoryRing({ name, avatarUrl, isOwn, hasStory = true, onPress }: Props) {
-  const inner = (
-    <View style={styles.inner}>
-      <Avatar uri={avatarUrl} name={name} size={56} />
+  const avatar = <Avatar uri={avatarUrl} name={name} size={56} />;
+
+  const ringContent = (
+    <View style={styles.avatarWrap}>
+      {avatar}
       {isOwn && <Text style={styles.plus}>+</Text>}
     </View>
   );
@@ -21,26 +27,45 @@ export function StoryRing({ name, avatarUrl, isOwn, hasStory = true, onPress }: 
   return (
     <Pressable style={styles.container} onPress={onPress}>
       {hasStory && !isOwn ? (
-        <View style={[styles.ring, { borderColor: colors.primary }]}>
-          {inner}
-        </View>
+        <LinearGradient
+          colors={[...GRADIENT]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientRing}
+        >
+          <View style={styles.innerRing}>{ringContent}</View>
+        </LinearGradient>
       ) : (
-        <View style={styles.plainRing}>{inner}</View>
+        <View style={[styles.plainRing, isOwn && styles.ownRing]}>{ringContent}</View>
       )}
-      <Text style={styles.name} numberOfLines={1}>{isOwn ? 'Sen' : name.split(' ')[0]}</Text>
+      <Text style={styles.name} numberOfLines={1}>
+        {isOwn ? 'Hikayen' : name.split(' ')[0]}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', width: 72, marginRight: 12 },
-  ring: {
+  container: { alignItems: 'center', width: 76, marginRight: 10 },
+  gradientRing: {
+    padding: 2.5,
+    borderRadius: 34,
+  },
+  innerRing: {
+    backgroundColor: colors.bg,
+    borderRadius: 31,
+    padding: 2,
+  },
+  plainRing: {
     padding: 2,
     borderRadius: 32,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  plainRing: { padding: 2 },
-  inner: { position: 'relative' },
+  ownRing: {
+    borderColor: colors.textMuted,
+  },
+  avatarWrap: { position: 'relative' },
   plus: {
     position: 'absolute',
     bottom: 0,
@@ -55,6 +80,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 18,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.bg,
   },
-  name: { color: colors.textMuted, fontSize: 11, marginTop: 4, maxWidth: 72 },
+  name: { color: colors.text, fontSize: 11, marginTop: 6, maxWidth: 72 },
 });

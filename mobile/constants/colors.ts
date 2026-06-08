@@ -5,8 +5,8 @@ export const colors = {
   gradientStart: '#378ADD',
   gradientEnd: '#1D9E75',
 
-  bg: '#0f1117',
-  surface: '#1e2130',
+  bg: '#000000',
+  surface: '#121212',
   surfaceLight: '#252836',
   border: '#2a2d36',
 

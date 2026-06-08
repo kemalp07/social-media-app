@@ -7,7 +7,7 @@ import { colors, spacing } from '@/constants/colors';
 import * as api from '@/lib/api';
 import type { FakeUser } from '@/lib/types';
 
-export default function ExploreScreen() {
+export default function SearchScreen() {
   const router = useRouter();
   const [characters, setCharacters] = useState<FakeUser[]>([]);
 
@@ -21,23 +21,16 @@ export default function ExploreScreen() {
       keyExtractor={(item) => item.id}
       style={styles.screen}
       contentContainerStyle={styles.list}
-      ListHeaderComponent={
-        <Text style={styles.header}>Keşfet — Tier 1 Karakterler</Text>
-      }
+      ListHeaderComponent={<Text style={styles.header}>Ara — Tier 1 Karakterler</Text>}
       renderItem={({ item }) => (
-        <Pressable
-          style={styles.card}
-          onPress={() => router.push('/characters')}
-        >
+        <Pressable style={styles.card} onPress={() => router.push('/characters')}>
           <Avatar uri={item.avatar_url} name={item.display_name} size={48} />
           <View style={styles.info}>
-            <Text style={styles.name}>{item.display_name} {item.is_verified ? '✓' : ''}</Text>
+            <Text style={styles.name}>{item.display_name}</Text>
             <Text style={styles.username}>@{item.username}</Text>
-            <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text>
+            {item.bio ? <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text> : null}
           </View>
-          <Text style={styles.followers}>
-            {(item.follower_count ?? 0).toLocaleString('tr-TR')}
-          </Text>
+          <Text style={styles.followers}>{item.follower_count?.toLocaleString('tr-TR') ?? 0}</Text>
         </Pressable>
       )}
     />

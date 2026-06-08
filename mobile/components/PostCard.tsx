@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
@@ -13,6 +14,15 @@ import { Avatar } from '@/components/Avatar';
 import { colors, spacing } from '@/constants/colors';
 import type { Post } from '@/lib/types';
 
+const ICONS = {
+  like: require('../assets/icons/icon_like.png'),
+  likeActive: require('../assets/icons/icon_like_active.png'),
+  comment: require('../assets/icons/icon_comment.png'),
+  share: require('../assets/icons/icon_share.png'),
+  save: require('../assets/icons/icon_save.png'),
+} as const;
+
+const ICON_WHITE = '#ffffff';
 interface Props {
   post: Post;
 }
@@ -36,6 +46,7 @@ export function PostCard({ post }: Props) {
   const router = useRouter();
   const author = post.users;
   const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(post.like_count);
   const heartScale = useRef(new Animated.Value(0)).current;
   const lastTap = useRef(0);
@@ -48,135 +59,157 @@ export function PostCard({ post }: Props) {
   };
 
   const handleLike = () => {
-    if (!liked) {
-      setLiked(true);
-      setLikeCount((c) => c + 1);
-    }
+    setLiked((prev) => {
+      if (!prev) setLikeCount((c) => c + 1);
+      else setLikeCount((c) => Math.max(0, c - 1));
+      return !prev;
+    });
   };
 
   const handleDoubleTap = () => {
     const now = Date.now();
     if (now - lastTap.current < 300) {
-      handleLike();
+      if (!liked) {
+        setLiked(true);
+        setLikeCount((c) => c + 1);
+      }
       animateHeart();
     }
     lastTap.current = now;
   };
 
   return (
-    <Pressable style={styles.card} onPress={() => router.push(`/post/${post.id}`)}>
-      <View style={styles.header}>
-        <Avatar uri={author?.avatar_url} name={author?.display_name} size={36} />
+    <View style={styles.card}>
+      <Pressable style={styles.header} onPress={() => router.push(`/post/${post.id}`)}>
+        <Avatar uri={author?.avatar_url} name={author?.display_name} size={32} />
         <View style={styles.headerText}>
           <Text style={styles.username}>{author?.username ?? 'you'}</Text>
-          <Text style={styles.time}>{timeAgo(post.created_at)}</Text>
+          {post.is_viral && <Text style={styles.viral}>Trend</Text>}
         </View>
-        {post.is_viral && <Text style={styles.viral}>🔥</Text>}
-      </View>
+        <Pressable hitSlop={8}>
+          <Ionicons name="ellipsis-horizontal" size={18} color={ICON_WHITE} />
+        </Pressable>
+      </Pressable>
 
       <Pressable onPress={handleDoubleTap}>
         {post.image_url?.trim() ? (
           <Image source={{ uri: post.image_url }} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={styles.imagePlaceholder}>
-            <Text style={styles.placeholderIcon}>📷</Text>
-            <Text style={styles.placeholderText}>Görsel yok</Text>
+            <Ionicons name="image-outline" size={48} color={colors.textMuted} />
           </View>
         )}
         <Animated.View
           style={[styles.bigHeart, { transform: [{ scale: heartScale }], opacity: heartScale }]}
         >
-          <Image source={require('../assets/icons/icon_like_active.png')} style={styles.bigHeartIcon} />
-        </Animated.View>
-      </Pressable>
+          <Image source={ICONS.likeActive} style={styles.bigHeartIcon} />
+        </Animated.View>      </Pressable>
 
       <View style={styles.actions}>
-        <Pressable style={styles.actionBtn} onPress={handleLike}>
-          <Image
-            source={liked ? require('../assets/icons/icon_like_active.png') : require('../assets/icons/icon_like.png')}
-            style={styles.actionIcon}
-          />
-          <Text style={styles.actionCount}>{formatCount(likeCount)}</Text>
-        </Pressable>
-        <View style={styles.actionBtn}>
-          <Image source={require('../assets/icons/icon_comment.png')} style={styles.actionIcon} />
-          <Text style={styles.actionCount}>{formatCount(post.comment_count)}</Text>
+        <View style={styles.actionsLeft}>
+          <Pressable onPress={handleLike} hitSlop={6}>
+            <Image
+              source={liked ? ICONS.likeActive : ICONS.like}
+              style={styles.actionIcon}
+            />
+          </Pressable>
+          <Pressable onPress={() => router.push(`/post/${post.id}`)} hitSlop={6}>
+            <Image source={ICONS.comment} style={styles.actionIcon} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/(tabs)/messages')} hitSlop={6}>
+            <Image source={ICONS.share} style={styles.actionIcon} />
+          </Pressable>
         </View>
-        <Pressable style={styles.actionBtn}>
-          <Image source={require('../assets/icons/icon_share.png')} style={styles.actionIcon} />
-        </Pressable>
-        <Pressable style={[styles.actionBtn, styles.save]}>
-          <Image source={require('../assets/icons/icon_save.png')} style={styles.actionIcon} />
+        <Pressable onPress={() => setSaved((s) => !s)} hitSlop={6}>
+          <Image source={ICONS.save} style={styles.actionIcon} />
         </Pressable>
       </View>
-
       <Text style={styles.likes}>{formatCount(likeCount)} beğeni</Text>
       {post.caption ? (
-        <Text style={styles.caption}>
+        <Text style={styles.caption} numberOfLines={3}>
           <Text style={styles.captionUser}>{author?.username} </Text>
           {post.caption}
         </Text>
       ) : null}
       {post.comment_count > 0 && (
-        <Text style={styles.viewComments}>
-          {post.comment_count} yorumun tamamını gör
-        </Text>
+        <Pressable onPress={() => router.push(`/post/${post.id}`)}>
+          <Text style={styles.viewComments}>
+            {post.comment_count} yorumun tamamını gör
+          </Text>
+        </Pressable>
       )}
-    </Pressable>
+      <Text style={styles.time}>{timeAgo(post.created_at)}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
     marginBottom: spacing.md,
-    borderRadius: 12,
-    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     gap: spacing.sm,
   },
   headerText: { flex: 1 },
   username: { color: colors.text, fontWeight: '700', fontSize: 14 },
-  time: { color: colors.textMuted, fontSize: 12 },
-  viral: { fontSize: 16 },
+  viral: { color: colors.secondary, fontSize: 11, fontWeight: '600', marginTop: 1 },
   image: { width: '100%', aspectRatio: 1 },
   imagePlaceholder: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
   },
-  placeholderIcon: { fontSize: 48, opacity: 0.4 },
-  placeholderText: { color: colors.textMuted, fontSize: 14 },
   bigHeart: {
     position: 'absolute',
     alignSelf: 'center',
     top: '40%',
   },
   bigHeartIcon: { width: 80, height: 80 },
-  actions: {
-    flexDirection: 'row',
+  actions: {    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
-    gap: spacing.md,
+    paddingBottom: spacing.xs,
   },
-  actionBtn: {
+  actionsLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.md,
   },
-  actionIcon: { width: 24, height: 24 },
-  actionCount: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  save: { marginLeft: 'auto' },
-  likes: { color: colors.text, fontWeight: '700', fontSize: 14, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-  caption: { color: colors.text, fontSize: 14, paddingHorizontal: spacing.md, paddingTop: 4 },
+  actionIcon: { width: 26, height: 26 },
+  likes: {    color: colors.text,
+    fontWeight: '700',
+    fontSize: 14,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  caption: {
+    color: colors.text,
+    fontSize: 14,
+    paddingHorizontal: spacing.md,
+    lineHeight: 20,
+  },
   captionUser: { fontWeight: '700' },
-  viewComments: { color: colors.textMuted, fontSize: 13, padding: spacing.md, paddingTop: 4 },
+  viewComments: {
+    color: colors.textMuted,
+    fontSize: 13,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+  },
+  time: {
+    color: colors.textMuted,
+    fontSize: 11,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    textTransform: 'uppercase',
+  },
 });
