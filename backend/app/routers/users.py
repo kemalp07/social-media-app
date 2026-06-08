@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models import User
 from app.schemas import FCMTokenUpdate, UserCreate, UserResponse
 from app.serializers import user_to_dict
+from app.services.onboarding_service import create_welcome_package
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
         )
         db.add(user)
         await db.flush()
+        await create_welcome_package(user.id, db)
         await db.refresh(user)
 
         response = UserResponse(**user_to_dict(user))
@@ -64,9 +66,20 @@ async def get_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
     return UserResponse(**user_to_dict(user))
 
 
-@router.get("/by-username/{username}", response_model=UserResponse)
+@router.get("/username/{username}", response_model=UserResponse)
 async def get_user_by_username(username: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.username == username))
+    normalized = username.strip().lower()
+    result = await db.execute(select(User).where(User.username == normalized))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    return UserResponse(**user_to_dict(user))
+
+
+@router.get("/by-username/{username}", response_model=UserResponse)
+async def get_user_by_username_legacy(username: str, db: AsyncSession = Depends(get_db)):
+    normalized = username.strip().lower()
+    result = await db.execute(select(User).where(User.username == normalized))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")

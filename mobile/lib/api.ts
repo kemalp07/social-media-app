@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { API_URL } from './config';
+import { getStoredUserId } from './storage';
 import type { Conversation, FakeUser, Message, Notification, Post, User } from './types';
 
 const client = axios.create({
@@ -19,6 +20,13 @@ export async function createUser(username: string, displayName: string, bio = ''
 
 export async function getUser(userId: string): Promise<User> {
   const { data } = await client.get<User>(`/users/${userId}`);
+  return data;
+}
+
+export async function getUserByUsername(username: string): Promise<User> {
+  const { data } = await client.get<User>(
+    `/users/username/${encodeURIComponent(username.trim().toLowerCase())}`
+  );
   return data;
 }
 
@@ -115,5 +123,18 @@ export async function getTier1Characters(): Promise<FakeUser[]> {
 
 export async function getFakeUser(fakeUserId: string): Promise<FakeUser> {
   const { data } = await client.get<FakeUser>(`/fake-users/${fakeUserId}`);
+  return data;
+}
+
+export async function sendStoryReaction(fakeUserId: string, emoji: string) {
+  const userId = await getStoredUserId();
+  if (!userId) {
+    throw new Error('Oturum bulunamadı');
+  }
+  const { data } = await client.post('/messages/story-reaction', {
+    user_id: userId,
+    fake_user_id: fakeUserId,
+    emoji,
+  });
   return data;
 }

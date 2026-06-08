@@ -69,6 +69,12 @@ class MessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=2000)
 
 
+class StoryReactionCreate(BaseModel):
+    user_id: UUID
+    fake_user_id: UUID
+    emoji: str = Field(default="❤️", max_length=8)
+
+
 class MessageResponse(BaseModel):
     id: UUID
     sender: Literal["user", "ai"]

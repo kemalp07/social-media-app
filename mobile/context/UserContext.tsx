@@ -9,6 +9,7 @@ interface UserContextValue {
   loading: boolean;
   refreshUser: () => Promise<void>;
   register: (username: string, displayName: string) => Promise<void>;
+  login: (username: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -43,13 +44,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setUser(data);
   };
 
+  const login = async (username: string) => {
+    const data = await api.getUserByUsername(username);
+    await setStoredUserId(data.id);
+    setUser(data);
+  };
+
   const logout = async () => {
     await clearStoredUserId();
     setUser(null);
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, refreshUser, register, logout }}>
+    <UserContext.Provider value={{ user, loading, refreshUser, register, login, logout }}>
       {children}
     </UserContext.Provider>
   );

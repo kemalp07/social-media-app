@@ -14,7 +14,6 @@ import {
 
 import { PostCard } from '@/components/PostCard';
 import { StoryRing } from '@/components/StoryRing';
-import { StoryViewModal } from '@/components/StoryViewModal';
 import { useTabHeader } from '@/context/TabHeaderContext';
 import { useUser } from '@/context/UserContext';
 import { useFeed } from '@/hooks/useFeed';
@@ -23,15 +22,12 @@ import { colors, spacing } from '@/constants/colors';
 import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
 import type { FakeUser } from '@/lib/types';
 
-type StoryPreview = { name: string; avatarUrl?: string | null; isOwn?: boolean };
-
 export default function FeedScreen() {
   const { user } = useUser();
   const router = useRouter();
   const { setUnreadCount, registerActions } = useTabHeader();
   const { posts, loading, setLoading, refreshing, load, refresh } = useFeed(user?.id);
   const [stories, setStories] = useState<FakeUser[]>([]);
-  const [activeStory, setActiveStory] = useState<StoryPreview | null>(null);
   const listRef = useRef<FlatList>(null);
 
   const hasOwnStory = (user?.post_count ?? 0) > 0;
@@ -68,23 +64,15 @@ export default function FeedScreen() {
   }, []);
 
   const openOwnStory = () => {
-    if (hasOwnStory && user) {
-      setActiveStory({
-        name: user.display_name,
-        avatarUrl: user.avatar_url,
-        isOwn: true,
-      });
+    if (hasOwnStory) {
+      router.push('/story/me');
       return;
     }
     router.push('/(tabs)/create');
   };
 
   const openCharacterStory = (character: FakeUser) => {
-    setActiveStory({
-      name: character.display_name,
-      avatarUrl: character.avatar_url,
-      isOwn: false,
-    });
+    router.push(`/story/${character.id}`);
   };
 
   if (loading) {
@@ -151,14 +139,6 @@ export default function FeedScreen() {
             <Text style={styles.emptyText}>İlk fotoğrafını paylaş!</Text>
           </View>
         }
-      />
-
-      <StoryViewModal
-        visible={!!activeStory}
-        name={activeStory?.name ?? ''}
-        avatarUrl={activeStory?.avatarUrl}
-        isOwn={activeStory?.isOwn}
-        onClose={() => setActiveStory(null)}
       />
     </View>
   );

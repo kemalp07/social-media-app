@@ -7,10 +7,10 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models import Conversation, FakeUser, Message
-from app.schemas import MessageCreate
+from app.schemas import MessageCreate, StoryReactionCreate
 from app.serializers import conversation_to_dict, message_to_dict
 from app.services.avatar_service import dicebear_url
-from app.services.dm_service import send_user_message
+from app.services.dm_service import send_story_reaction, send_user_message
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -51,6 +51,14 @@ async def get_messages(conversation_id: UUID, user_id: UUID, db: AsyncSession = 
         .values(is_read=True)
     )
     return [message_to_dict(m) for m in msg_result.scalars().all()]
+
+
+@router.post("/story-reaction")
+async def story_reaction(data: StoryReactionCreate, db: AsyncSession = Depends(get_db)):
+    try:
+        return await send_story_reaction(db, data.user_id, data.fake_user_id, data.emoji)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.post("/conversations/{conversation_id}/send")
