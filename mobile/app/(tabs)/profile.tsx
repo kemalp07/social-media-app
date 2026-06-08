@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
+import { SettingsModal } from '@/components/SettingsModal';
 import { useUser } from '@/context/UserContext';
+import { useTabHeader } from '@/context/TabHeaderContext';
 import * as api from '@/lib/api';
 import { colors, spacing } from '@/constants/colors';
 import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
@@ -36,8 +38,9 @@ function ProfileStat({ value, label }: { value: string | number; label: string }
 }
 
 export default function ProfileScreen() {
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const router = useRouter();
+  const { settingsVisible, closeSettings } = useTabHeader();
   const [posts, setPosts] = useState<Post[]>([]);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
@@ -60,8 +63,19 @@ export default function ProfileScreen() {
     if (!result.canceled) setAvatarUri(result.assets[0].uri);
   };
 
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/onboarding');
+  };
+
   return (
     <View style={styles.screen}>
+      <SettingsModal
+        visible={settingsVisible}
+        onClose={closeSettings}
+        onEditProfile={pickAvatar}
+        onLogout={() => void handleLogout()}
+      />
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}

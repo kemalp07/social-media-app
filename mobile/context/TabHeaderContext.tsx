@@ -10,6 +10,9 @@ type TabHeaderContextValue = {
   createMenuVisible: boolean;
   openCreateMenu: () => void;
   closeCreateMenu: () => void;
+  settingsVisible: boolean;
+  openSettings: () => void;
+  closeSettings: () => void;
   exploreSearchOpen: boolean;
   toggleExploreSearch: () => void;
   registerActions: (actions: Partial<TabHeaderActions>) => void;
@@ -21,6 +24,7 @@ const TabHeaderContext = createContext<TabHeaderContextValue | null>(null);
 export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [createMenuVisible, setCreateMenuVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [exploreSearchOpen, setExploreSearchOpen] = useState(false);
   const actionsRef = useRef<TabHeaderActions>({
     scrollToTop: null,
@@ -32,6 +36,8 @@ export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
 
   const openCreateMenu = useCallback(() => setCreateMenuVisible(true), []);
   const closeCreateMenu = useCallback(() => setCreateMenuVisible(false), []);
+  const openSettings = useCallback(() => setSettingsVisible(true), []);
+  const closeSettings = useCallback(() => setSettingsVisible(false), []);
   const toggleExploreSearch = useCallback(() => setExploreSearchOpen((v) => !v), []);
 
   const scrollToTop = useCallback(() => {
@@ -45,6 +51,9 @@ export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
       createMenuVisible,
       openCreateMenu,
       closeCreateMenu,
+      settingsVisible,
+      openSettings,
+      closeSettings,
       exploreSearchOpen,
       toggleExploreSearch,
       registerActions,
@@ -53,9 +62,12 @@ export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
     [
       unreadCount,
       createMenuVisible,
+      settingsVisible,
       exploreSearchOpen,
       openCreateMenu,
       closeCreateMenu,
+      openSettings,
+      closeSettings,
       toggleExploreSearch,
       registerActions,
       scrollToTop,

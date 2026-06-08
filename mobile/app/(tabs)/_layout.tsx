@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { Tabs, useRouter } from 'expo-router';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { CreateMenuModal } from '@/components/CreateMenuModal';
@@ -96,8 +96,7 @@ function TabHeaderTitle({ routeName }: { routeName: string }) {
 
 function TabHeaderRight({ routeName }: { routeName: string }) {
   const router = useRouter();
-  const { unreadCount, toggleExploreSearch } = useTabHeader();
-  const { logout } = useUser();
+  const { unreadCount, toggleExploreSearch, openSettings } = useTabHeader();
 
   if (routeName === 'index') {
     const hasUnread = unreadCount > 0;
@@ -146,20 +145,6 @@ function TabHeaderRight({ routeName }: { routeName: string }) {
   }
 
   if (routeName === 'profile') {
-    const openSettings = () => {
-      Alert.alert('Ayarlar', undefined, [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Çıkış Yap',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/onboarding');
-          },
-        },
-      ]);
-    };
-
     return (
       <Pressable onPress={openSettings} hitSlop={8} style={styles.headerBtn}>
         <Ionicons name="settings-outline" size={24} color="#ffffff" />
