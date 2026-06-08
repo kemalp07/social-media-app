@@ -13,6 +13,8 @@
 .env.local
 **/.env
 !**/.env.example
+env
+keys/
 firebase-credentials.json
 
 # Expo
