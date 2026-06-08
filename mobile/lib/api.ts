@@ -64,10 +64,23 @@ export async function createPost(
   form.append('caption', caption);
   if (location) form.append('location', location);
 
-  const { data } = await client.post(`/posts?user_id=${userId}`, form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
+  try {
+    const { data } = await client.post(`/posts?user_id=${userId}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string' && detail.trim()) {
+        throw new Error(detail);
+      }
+      if (error.response?.status === 500) {
+        throw new Error('Sunucu hatası. Backend çalışıyor mu kontrol et.');
+      }
+    }
+    throw error;
+  }
 }
 
 export async function getNotifications(userId: string): Promise<Notification[]> {
@@ -109,10 +122,17 @@ export async function startConversation(userId: string, fakeUserId: string) {
   return data;
 }
 
-export async function getExplorePosts(): Promise<{ id: string; image_url: string; caption?: string }[]> {
-  const { data } = await client.get<{ id: string; image_url: string; caption?: string }[]>(
-    '/fake-users/explore/posts'
-  );
+export type ExplorePost = {
+  id: string;
+  image_url: string;
+  caption?: string;
+  source?: 'user' | 'fake';
+  username?: string;
+  quality_score?: number | null;
+};
+
+export async function getExplorePosts(): Promise<ExplorePost[]> {
+  const { data } = await client.get<ExplorePost[]>('/fake-users/explore/posts');
   return data;
 }
 

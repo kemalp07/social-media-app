@@ -2,9 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
-import * as MediaLibrary from 'expo-media-library';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -52,7 +51,7 @@ async function ensureLocalImageUri(uri: string): Promise<string> {
 export default function CreateScreen() {
   const [gameMode, setGameModeState] = useState<GameMode | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     void getGameMode().then((mode) => setGameModeState(mode ?? 'real'));
   }, []);
 
@@ -100,9 +99,14 @@ function CharacterCreateScreen() {
     setSharing(true);
     try {
       const localUri = await ensureLocalImageUri(imageUri);
-      await api.createPost(user.id, localUri, caption, location.trim() || undefined);
-      await refreshUser();
+      const result = await api.createPost(user.id, localUri, caption, location.trim() || undefined);
       router.replace('/(tabs)');
+      void refreshUser();
+      if (result?.on_explore) {
+        setTimeout(() => {
+          Alert.alert('Keşfet 🌟', 'Gönderin Keşfet sayfasına düştü!');
+        }, 400);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Gönderi paylaşılamadı.';
       Alert.alert(
@@ -193,65 +197,16 @@ function RealCreateScreen() {
   const cameraRef = useRef<CameraView>(null);
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
 
   const [screen, setScreen] = useState<RealScreen>('camera');
   const [contentMode, setContentMode] = useState<ContentMode>('post');
   const [facing, setFacing] = useState<'front' | 'back'>('back');
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [lastPhotoUri, setLastPhotoUri] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [sharing, setSharing] = useState(false);
-
-  const loadLastPhoto = useCallback(async () => {
-    if (Platform.OS === 'web') return;
-
-    const { status } = await MediaLibrary.getPermissionsAsync();
-    if (status !== 'granted') return;
-
-    try {
-      const { assets } = await MediaLibrary.getAssetsAsync({
-        first: 1,
-        mediaType: MediaLibrary.MediaType.photo,
-        sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-      });
-      if (assets[0]) {
-        const info = await MediaLibrary.getAssetInfoAsync(assets[0]);
-        setLastPhotoUri(info.localUri ?? assets[0].uri);
-      }
-    } catch {
-      // Galeri önizlemesi opsiyonel
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadLastPhoto();
-  }, [loadLastPhoto, mediaPermission?.granted]);
-
-  const ensureMediaPermission = async (): Promise<boolean> => {
-    if (Platform.OS === 'web') return true;
-
-    if (mediaPermission?.granted) return true;
-
-    const result = await requestMediaPermission();
-    if (result.granted) {
-      void loadLastPhoto();
-      return true;
-    }
-
-    Alert.alert(
-      'Galeri izni gerekli',
-      'Son fotoğrafını göstermek ve galeriden seçim yapmak için galeri erişimine izin ver.',
-      [
-        { text: 'İptal', style: 'cancel' },
-        { text: 'Ayarlar', onPress: () => void Linking.openSettings() },
-      ]
-    );
-    return false;
-  };
 
   const openGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -319,9 +274,14 @@ function RealCreateScreen() {
 
     setSharing(true);
     try {
-      await api.createPost(user.id, imageUri, caption, location.trim() || undefined);
-      await refreshUser();
+      const result = await api.createPost(user.id, imageUri, caption, location.trim() || undefined);
       router.replace('/(tabs)');
+      void refreshUser();
+      if (result?.on_explore) {
+        setTimeout(() => {
+          Alert.alert('Keşfet 🌟', 'Gönderin Keşfet sayfasına düştü!');
+        }, 400);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Gönderi paylaşılamadı.';
       Alert.alert(
@@ -497,15 +457,10 @@ function RealCreateScreen() {
         <Pressable
           style={styles.galleryBtn}
           onPress={() => void openGallery()}
-          onLongPress={() => void ensureMediaPermission()}
         >
-          {lastPhotoUri ? (
-            <Image source={{ uri: lastPhotoUri }} style={styles.galleryThumb} />
-          ) : (
-            <View style={styles.galleryPlaceholder}>
-              <Ionicons name="images-outline" size={22} color="#fff" />
-            </View>
-          )}
+          <View style={styles.galleryPlaceholder}>
+            <Ionicons name="images-outline" size={22} color="#fff" />
+          </View>
         </Pressable>
 
         <Pressable

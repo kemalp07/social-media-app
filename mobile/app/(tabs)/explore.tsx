@@ -3,33 +3,29 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { useTabHeader } from '@/context/TabHeaderContext';
 import { colors, spacing } from '@/constants/colors';
 import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
-import { API_URL } from '@/lib/config';
 import * as api from '@/lib/api';
-
-type ExploreItem = { id: string; image_url: string; caption?: string };
+import { getImageUrl } from '@/lib/media';
+import type { ExplorePost } from '@/lib/api';
 
 const COLS = 3;
 const GAP = 2;
 const TILE = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
 
-function resolveImageUrl(url: string): string {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-}
-
 export default function ExploreScreen() {
+  const router = useRouter();
   const { exploreSearchOpen } = useTabHeader();
-  const [posts, setPosts] = useState<ExploreItem[]>([]);
+  const [posts, setPosts] = useState<ExplorePost[]>([]);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -43,8 +39,18 @@ export default function ExploreScreen() {
   const filteredPosts = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return posts;
-    return posts.filter((p) => (p.caption ?? '').toLowerCase().includes(q));
+    return posts.filter((p) => {
+      const caption = (p.caption ?? '').toLowerCase();
+      const username = (p.username ?? '').toLowerCase();
+      return caption.includes(q) || username.includes(q);
+    });
   }, [posts, query]);
+
+  const handlePress = (item: ExplorePost) => {
+    if (item.source === 'user') {
+      router.push(`/post/${item.id}`);
+    }
+  };
 
   return (
     <View style={styles.screen}>
@@ -62,7 +68,7 @@ export default function ExploreScreen() {
       )}
       <FlatList
         data={filteredPosts}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => `${item.source ?? 'fake'}-${item.id}`}
         style={styles.list}
         numColumns={COLS}
         columnWrapperStyle={styles.row}
@@ -74,17 +80,26 @@ export default function ExploreScreen() {
           </Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.tile}>
+          <Pressable
+            style={styles.tile}
+            onPress={() => handlePress(item)}
+            disabled={item.source !== 'user'}
+          >
             {item.image_url ? (
               <Image
-                source={{ uri: resolveImageUrl(item.image_url) }}
+                source={{ uri: getImageUrl(item.image_url) }}
                 style={styles.tileImage}
                 resizeMode="cover"
               />
             ) : (
               <View style={styles.tilePlaceholder} />
             )}
-          </View>
+            {item.source === 'user' && (
+              <View style={styles.featuredBadge}>
+                <Text style={styles.featuredBadgeText}>★</Text>
+              </View>
+            )}
+          </Pressable>
         )}
       />
     </View>
@@ -116,5 +131,17 @@ const styles = StyleSheet.create({
   },
   tileImage: { width: '100%', height: '100%' },
   tilePlaceholder: { flex: 1, backgroundColor: colors.surface },
+  featuredBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(55,138,221,0.92)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featuredBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   empty: { color: colors.textMuted, textAlign: 'center', padding: spacing.xl },
 });

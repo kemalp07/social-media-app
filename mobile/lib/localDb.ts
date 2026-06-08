@@ -88,36 +88,130 @@ function randomChoice<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+const NICK_SUFFIXES = ['x', 'hq', 'tr', '01', '07', '34', '06', '35', 'ist', 'bjk', 'gs'];
+
+function optionalNumber(): string {
+  const roll = Math.random();
+  if (roll < 0.45) return '';
+  if (roll < 0.65) return String(randomInt(1, 99));
+  if (roll < 0.82) return String(randomInt(1994, 2007));
+  if (roll < 0.93) return String(randomInt(100, 999));
+  return String(randomInt(1000, 99999));
+}
+
+function pickSeparator(): string {
+  return randomChoice(['.', '_', '']);
+}
+
+function trimNick(raw: string): string {
+  return raw
+    .replace(/[._-]{2,}/g, '_')
+    .replace(/^[._-]+|[._-]+$/g, '')
+    .slice(0, 29);
+}
+
+function fullNameNick(f: string, l: string): string {
+  const sep = pickSeparator();
+  const num = optionalNumber();
+  const formats = [
+    () => `${f}${sep}${l}${num}`,
+    () => `${l}${sep}${f}${num}`,
+    () => `${f}${l}${num}`,
+    () => `${f}.${l}`,
+    () => `${f}_${l}`,
+    () => `${l.toLowerCase()}.${f}${num}`,
+  ];
+  return trimNick(randomChoice(formats)());
+}
+
+function firstNameNick(f: string, l: string): string {
+  const num = optionalNumber();
+  const li = l[0] ?? '';
+  const formats = [
+    () => `${f}${num}`,
+    () => f,
+    () => `${f}${li}${num}`,
+    () => `${f}.${li}`,
+    () => `${f}_${li}${num}`,
+    () => `${f}${randomChoice(NICK_SUFFIXES)}${num}`,
+  ];
+  return trimNick(randomChoice(formats)());
+}
+
+function keywordNick(f: string, l: string): string {
+  const keyword = randomChoice(NICK_KEYWORDS);
+  const num = optionalNumber();
+  const formats = [
+    () => `${f}_${keyword}${num}`,
+    () => `${f}.${keyword}`,
+    () => `${keyword}${f}${num}`,
+    () => `${f}${keyword}${num}`,
+    () => `${f}_${l[0] ?? ''}${keyword}${num}`,
+    () => `${f}_${keyword}`,
+  ];
+  return trimNick(randomChoice(formats)());
+}
+
+function prefixNick(f: string): string {
+  const num = optionalNumber();
+  const prefix = randomChoice(NICK_PREFIXES);
+  const formats = [
+    () => `${prefix}${f}${num}`,
+    () => `${f}${num}${randomChoice(NICK_SUFFIXES)}`,
+    () => `real${f}${num}`,
+    () => `its${f}${num}`,
+  ];
+  return trimNick(randomChoice(formats)());
+}
+
+function initialNick(f: string, l: string): string {
+  const num = optionalNumber();
+  const formats = [
+    () => `${f[0] ?? ''}${l}${num}`,
+    () => `${f[0] ?? ''}.${l}${num}`,
+    () => `${f}${l[0] ?? ''}${l[1] ?? ''}${num}`,
+    () => `${f[0] ?? ''}${l[0] ?? ''}${num}`,
+    () => `${f}_${l[0] ?? ''}_${l[1] ?? ''}${num}`,
+  ];
+  return trimNick(randomChoice(formats)());
+}
+
+function quirkyNick(f: string, l: string): string {
+  const num = optionalNumber();
+  const formats = [
+    () => `_${f}_`,
+    () => `${f}x${l[0] ?? ''}${num}`,
+    () => `${l}${f[0] ?? ''}${num}`,
+    () => `${f}.${num}`,
+    () => `${f}${randomInt(10, 99)}${l[0] ?? ''}`,
+    () => `${f}${l}${randomChoice(NICK_SUFFIXES)}`,
+    () => `x${f}x${num}`,
+  ];
+  return trimNick(randomChoice(formats)());
+}
+
 function generateNick(first: string, last: string): string {
   const f = toLatinLower(first);
   const l = toLatinLower(last);
-  const num = randomInt(10, 9999);
-  const year = randomInt(1990, 2005);
-  const keyword = randomChoice(NICK_KEYWORDS);
-  const prefix = randomChoice(NICK_PREFIXES);
+  const roll = Math.random();
 
-  const formats = [
-    () => `${f}_${l}_${num}`,
-    () => `${f}${num}`,
-    () => `${f}.${l}`,
-    () => `${f}_${keyword}`,
-    () => `${f}${l}${num}`,
-    () => `${prefix}${f}`,
-    () => `${f}_${l}`,
-    () => `${f}${year}`,
-    () => `${f}_${num}`,
-    () => `x${f}x`,
-    () => `${f}.${keyword}`,
-    () => `${f}_${l[0]}${num}`,
-    () => `${l}.${f}`,
-    () => `${f}${l[0]}${l[1]}${num}`,
-    () => `_${f}_${l}_`,
-  ];
+  let nick: string;
+  if (roll < 0.3) nick = fullNameNick(f, l);
+  else if (roll < 0.52) nick = firstNameNick(f, l);
+  else if (roll < 0.68) nick = keywordNick(f, l);
+  else if (roll < 0.8) nick = initialNick(f, l);
+  else if (roll < 0.9) nick = prefixNick(f);
+  else nick = quirkyNick(f, l);
 
-  return randomChoice(formats)().slice(0, 29);
+  if (!nick || nick.length < 2) {
+    nick = trimNick(`${f}${l}${optionalNumber()}`);
+  }
+  return nick;
 }
 
 // ─── SQLite ───────────────────────────────────────────────────────────────────
+
+const LOCAL_DB_USERNAME_VERSION = 2;
 
 let _db: SQLite.SQLiteDatabase | null = null;
 
@@ -145,7 +239,23 @@ export function initLocalDb(): void {
       avatar_seed TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_local_users_id ON local_users(id);
+    CREATE TABLE IF NOT EXISTS local_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
+
+  const row = db.getFirstSync<{ value: string }>(
+    "SELECT value FROM local_meta WHERE key = 'username_version'"
+  );
+  const version = row ? Number.parseInt(row.value, 10) : 0;
+  if (version < LOCAL_DB_USERNAME_VERSION) {
+    db.execSync('DELETE FROM local_users');
+    db.runSync(
+      "INSERT OR REPLACE INTO local_meta (key, value) VALUES ('username_version', ?)",
+      [String(LOCAL_DB_USERNAME_VERSION)]
+    );
+  }
 }
 
 export function getLocalUserCount(): number {

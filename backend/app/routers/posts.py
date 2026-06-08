@@ -1,6 +1,8 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -12,12 +14,15 @@ from app.services.avatar_service import dicebear_url
 from app.services.post_service import create_post
 from app.services.storage_service import save_image
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/posts", tags=["posts"])
 
 
 @router.post("", response_model=dict)
 async def create_new_post(
     user_id: UUID,
+    background_tasks: BackgroundTasks,
     caption: str = Form(""),
     location: str | None = Form(None),
     image: UploadFile = File(...),
@@ -29,9 +34,14 @@ async def create_new_post(
     image_url = save_image(user_id, filename, contents)
 
     try:
-        return await create_post(db, user_id, image_url, contents, caption, location, mime)
+        return await create_post(
+            db, user_id, image_url, contents, caption, location, mime, background_tasks,
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
+    except Exception:
+        logger.exception("Post upload failed for user %s", user_id)
+        raise HTTPException(500, "Gönderi yüklenemedi. Lütfen tekrar dene.")
 
 
 @router.get("/feed/{user_id}")

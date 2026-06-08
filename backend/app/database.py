@@ -13,6 +13,10 @@ engine = create_async_engine(
     settings.async_database_url,
     echo=settings.environment == "development",
     connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_size=5,
+    max_overflow=5,
 )
 
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

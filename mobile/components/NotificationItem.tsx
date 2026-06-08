@@ -11,6 +11,7 @@ const TYPE_CONFIG: Record<string, { emoji: string; bg?: string }> = {
   follow: { emoji: '👤' },
   dm: { emoji: '✉️' },
   viral: { emoji: '🔥', bg: 'rgba(255,109,0,0.15)' },
+  explore: { emoji: '🌟', bg: 'rgba(55,138,221,0.15)' },
   milestone: { emoji: '👑', bg: 'rgba(29,158,117,0.15)' },
   sponsor_offer: { emoji: '💰', bg: 'rgba(55,138,221,0.15)' },
   story_reaction: { emoji: '❤️', bg: 'rgba(255,48,64,0.12)' },

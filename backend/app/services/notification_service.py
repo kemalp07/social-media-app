@@ -67,6 +67,16 @@ async def notify_viral(session: AsyncSession, user_id: UUID | str, post_id: UUID
     await send_push(session, user_id, "Viral!", "Gönderin viral oluyor! 🔥")
 
 
+async def notify_explore(
+    session: AsyncSession,
+    user_id: UUID | str,
+    post_id: UUID | str,
+) -> None:
+    content = "Gönderin Keşfet'e düştü! 🌟"
+    await create_notification(session, user_id, "explore", content, post_id=post_id)
+    await send_push(session, user_id, "Keşfet", content)
+
+
 async def notify_dm(session: AsyncSession, user_id: UUID | str, fake_user: dict, message_preview: str) -> None:
     name = fake_user.get("display_name") or fake_user.get("username", "Someone")
     await create_notification(session, user_id, "dm", f"{name} sana mesaj gönderdi", fake_user.get("id"))
@@ -87,6 +97,28 @@ async def notify_story_reaction(
         content,
         from_fake_user_id=from_fake_user_id,
     )
+
+
+async def notify_like(
+    session: AsyncSession,
+    user_id: UUID | str,
+    username: str,
+    post_id: UUID | str,
+    from_fake_user_id: UUID | str | None = None,
+    *,
+    push: bool = False,
+) -> None:
+    content = f"@{username} postunu beğendi"
+    await create_notification(
+        session,
+        user_id,
+        "like",
+        content,
+        from_fake_user_id=from_fake_user_id,
+        post_id=post_id,
+    )
+    if push:
+        await send_push(session, user_id, "Yeni beğeni", content)
 
 
 def _fake_user_username(fu) -> str | None:

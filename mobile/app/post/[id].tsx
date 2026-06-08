@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, View 
 
 import { Avatar } from '@/components/Avatar';
 import * as api from '@/lib/api';
+import { getImageUrl } from '@/lib/media';
 import { colors, spacing } from '@/lib/theme';
 import type { Comment } from '@/lib/types';
 
@@ -42,7 +43,7 @@ export default function PostDetailScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Image source={{ uri: post.image_url as string }} style={styles.image} resizeMode="cover" />
+      <Image source={{ uri: getImageUrl(post.image_url as string) }} style={styles.image} resizeMode="cover" />
 
       <View style={styles.meta}>
         <Text style={styles.author}>@{users?.username ?? 'you'}</Text>

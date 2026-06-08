@@ -44,6 +44,7 @@ def post_to_dict(post: Post, include_user: bool = False) -> dict:
         "keywords": post.keywords,
         "engagement_prediction": post.engagement_prediction,
         "is_viral": post.is_viral,
+        "on_explore": bool(getattr(post, "on_explore", False)),
         "location": post.location,
         "target_like_count": post.target_like_count,
         "follower_gain": post.follower_gain,

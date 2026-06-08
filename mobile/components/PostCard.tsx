@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -12,6 +12,7 @@ import {
 
 import { Avatar } from '@/components/Avatar';
 import { colors, spacing } from '@/constants/colors';
+import { getImageUrl } from '@/lib/media';
 import { timeAgo } from '@/lib/timeAgo';
 import type { Post } from '@/lib/types';
 
@@ -37,6 +38,10 @@ export function PostCard({ post }: Props) {
   const [likeCount, setLikeCount] = useState(post.like_count);
   const heartScale = useRef(new Animated.Value(0)).current;
   const lastTap = useRef(0);
+
+  useEffect(() => {
+    setLikeCount(post.like_count);
+  }, [post.id, post.like_count]);
 
   const animateHeart = () => {
     heartScale.setValue(0);
@@ -80,7 +85,7 @@ export function PostCard({ post }: Props) {
 
       <Pressable onPress={handleDoubleTap}>
         {post.image_url?.trim() ? (
-          <Image source={{ uri: post.image_url }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: getImageUrl(post.image_url) }} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Ionicons name="image-outline" size={48} color={colors.textMuted} />

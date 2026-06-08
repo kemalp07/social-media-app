@@ -119,6 +119,7 @@ async def apply_follower_growth(
     amount: int,
     *,
     push: bool = True,
+    run_milestone_check: bool = True,
 ) -> dict:
     if amount <= 0:
         return {"tier1": 0, "tier2": 0, "tier3": 0, "total": 0}
@@ -184,7 +185,8 @@ async def apply_follower_growth(
         total=amount,
         push=push,
     )
-    await check_milestones(session, user_id, follower_count=user.follower_count)
+    if run_milestone_check:
+        await check_milestones(session, user_id, follower_count=user.follower_count)
 
     return {
         "tier1": tier1_count,
@@ -199,12 +201,19 @@ async def passive_growth(session: AsyncSession) -> int:
     result = await session.execute(select(User))
     users = result.scalars().all()
     total = 0
+    skip_milestones = settings.environment == "development"
 
     for user in users:
         amount = await calculate_growth_amount(session, user)
         if amount <= 0:
             continue
-        await apply_follower_growth(session, user.id, amount, push=False)
+        await apply_follower_growth(
+            session,
+            user.id,
+            amount,
+            push=False,
+            run_milestone_check=not skip_milestones,
+        )
         user.last_active = now
         total += amount
 

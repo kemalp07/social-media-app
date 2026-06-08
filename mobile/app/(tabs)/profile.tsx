@@ -17,6 +17,7 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { useUser } from '@/context/UserContext';
 import { useTabHeader } from '@/context/TabHeaderContext';
 import * as api from '@/lib/api';
+import { getImageUrl } from '@/lib/media';
 import { colors, spacing } from '@/constants/colors';
 import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
 import type { Post } from '@/lib/types';
@@ -126,7 +127,7 @@ export default function ProfileScreen() {
         renderItem={({ item }) => (
           <Pressable style={styles.gridItem} onPress={() => router.push(`/post/${item.id}`)}>
             {item.image_url?.trim() ? (
-              <Image source={{ uri: item.image_url }} style={styles.gridImage} />
+              <Image source={{ uri: getImageUrl(item.image_url) }} style={styles.gridImage} />
             ) : (
               <View style={styles.gridPlaceholder}>
                 <Ionicons name="image-outline" size={24} color={colors.textMuted} />

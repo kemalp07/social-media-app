@@ -5,8 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import FakePost, FakeUser
-from app.serializers import fake_post_to_dict, fake_user_to_dict
+from app.models import FakePost, FakeUser, Post, User
+from app.serializers import fake_user_to_dict
 from app.services.avatar_service import dicebear_url
 
 router = APIRouter(prefix="/fake-users", tags=["fake-users"])
@@ -14,13 +14,43 @@ router = APIRouter(prefix="/fake-users", tags=["fake-users"])
 
 @router.get("/explore/posts")
 async def list_explore_posts(limit: int = 60, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(FakePost).order_by(FakePost.created_at.desc()).limit(limit)
+    """Keşfet grid — yüksek puanlı kullanıcı postları + bot içerikleri."""
+    featured_limit = max(6, limit // 3)
+
+    real_result = await db.execute(
+        select(Post, User)
+        .join(User, Post.user_id == User.id)
+        .where(Post.on_explore == True)
+        .order_by(Post.explore_at.desc().nullslast(), Post.created_at.desc())
+        .limit(featured_limit)
     )
-    return [
-        {"id": str(p.id), "image_url": p.image_url, "caption": p.caption or ""}
-        for p in result.scalars().all()
+    featured = [
+        {
+            "id": str(post.id),
+            "image_url": post.image_url,
+            "caption": post.caption or "",
+            "source": "user",
+            "username": user.username,
+            "quality_score": float(post.quality_score) if post.quality_score else None,
+        }
+        for post, user in real_result.all()
     ]
+
+    fake_limit = max(0, limit - len(featured))
+    fake_result = await db.execute(
+        select(FakePost).order_by(FakePost.created_at.desc()).limit(fake_limit)
+    )
+    fake_items = [
+        {
+            "id": str(p.id),
+            "image_url": p.image_url,
+            "caption": p.caption or "",
+            "source": "fake",
+        }
+        for p in fake_result.scalars().all()
+    ]
+
+    return featured + fake_items
 
 
 @router.get("/{fake_user_id}")

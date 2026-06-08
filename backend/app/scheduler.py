@@ -1,31 +1,63 @@
+import asyncio
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.database import AsyncSessionLocal
 from app.services.dm_service import initiate_bot_dms
-from app.services.engagement_service import deliver_pending_likes
+from app.services.engagement_service import run_like_engagement
 from app.services.growth_service import daily_fake_posts, passive_growth
 from app.services.notification_service import send_daily_digest
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(
+    job_defaults={
+        "coalesce": True,
+        "max_instances": 1,
+        "misfire_grace_time": 30,
+    }
+)
 
 
 def setup_scheduler():
-    scheduler.add_job(_deliver_likes, "interval", minutes=1, id="deliver_likes")
-    scheduler.add_job(_passive_growth, "interval", seconds=1, id="passive_growth")
-    scheduler.add_job(_daily_dm, "cron", hour=10, id="daily_dm")
-    scheduler.add_job(_daily_fake_posts, "cron", hour=8, id="daily_fake_posts")
-    scheduler.add_job(_daily_digest_all, "cron", hour=9, id="daily_digest")
+    if scheduler.running:
+        return
+
+    scheduler.add_job(_deliver_likes, "interval", seconds=2, id="deliver_likes", replace_existing=True)
+    scheduler.add_job(_passive_growth, "interval", seconds=1, id="passive_growth", replace_existing=True)
+    scheduler.add_job(_daily_dm, "cron", hour=10, id="daily_dm", replace_existing=True)
+    scheduler.add_job(_daily_fake_posts, "cron", hour=8, id="daily_fake_posts", replace_existing=True)
+    scheduler.add_job(_daily_digest_all, "cron", hour=9, id="daily_digest", replace_existing=True)
     scheduler.start()
+    logger.info("Scheduler started")
+
+
+def shutdown_scheduler():
+    if not scheduler.running:
+        return
+    scheduler.shutdown(wait=True)
+    logger.info("Scheduler stopped")
 
 
 async def _deliver_likes():
     async with AsyncSessionLocal() as session:
-        await deliver_pending_likes(session)
-        await session.commit()
+        try:
+            result = await run_like_engagement(session)
+            await session.commit()
+            if result["total"] > 0:
+                logger.debug(
+                    "Like engagement: +%d (scheduled=%d passive=%d)",
+                    result["total"],
+                    result["scheduled"],
+                    result["passive"],
+                )
+        except asyncio.CancelledError:
+            await session.rollback()
+            logger.debug("Like engagement job cancelled")
+        except Exception:
+            await session.rollback()
+            logger.exception("Like engagement job failed")
 
 
 async def _passive_growth():
@@ -35,6 +67,9 @@ async def _passive_growth():
             await session.commit()
             if total > 0:
                 logger.debug("Passive growth drip: +%d follower(s)", total)
+        except asyncio.CancelledError:
+            await session.rollback()
+            logger.debug("Passive growth job cancelled")
         except Exception:
             await session.rollback()
             logger.exception("Passive growth job failed")

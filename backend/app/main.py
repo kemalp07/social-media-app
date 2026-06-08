@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.routers import fake_users, feed, messages, notifications, posts, users
-from app.scheduler import setup_scheduler
+from app.scheduler import setup_scheduler, shutdown_scheduler
 
 UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -16,7 +16,10 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_scheduler()
-    yield
+    try:
+        yield
+    finally:
+        shutdown_scheduler()
 
 
 app = FastAPI(

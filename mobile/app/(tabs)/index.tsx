@@ -52,21 +52,10 @@ export default function FeedScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      Promise.all([load(), loadUnreadCount()])
-        .catch(() => undefined)
-        .finally(() => setLoading(false));
-    }, [load, loadUnreadCount, setLoading])
-  );
-
-  useEffect(() => {
-    if (!user?.id) return;
-    void loadUnreadCount();
-    const interval = setInterval(() => {
+      void load();
       void loadUnreadCount();
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [user?.id, loadUnreadCount]);
+    }, [load, loadUnreadCount])
+  );
 
   useEffect(() => {
     if (!user?.id) return;
@@ -74,7 +63,22 @@ export default function FeedScreen() {
     load()
       .catch(() => undefined)
       .finally(() => setLoading(false));
-  }, [user?.id, user?.post_count, load, setLoading]);
+  }, [user?.id, load, setLoading]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void load();
+  }, [user?.id, user?.post_count, load]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void loadUnreadCount();
+    const interval = setInterval(() => {
+      void loadUnreadCount();
+      void load();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [user?.id, loadUnreadCount, load]);
 
   useEffect(() => {
     if (!user?.id) {
