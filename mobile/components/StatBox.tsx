@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing } from '@/constants/colors';
 
 interface Props {
   label: string;
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   highlight: {
-    color: colors.accent,
+    color: colors.primary,
   },
   label: {
     color: colors.textMuted,

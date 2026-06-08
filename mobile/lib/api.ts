@@ -27,7 +27,7 @@ export async function upgradePremium(userId: string): Promise<void> {
 }
 
 export async function getFeed(userId: string): Promise<Post[]> {
-  const { data } = await client.get<Post[]>(`/posts/feed/${userId}`);
+  const { data } = await client.get<Post[]>(`/feed/${userId}`);
   return data;
 }
 

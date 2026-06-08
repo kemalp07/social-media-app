@@ -1,65 +1,68 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useCallback } from 'react';
+import { ActivityIndicator, SectionList, StyleSheet, Text, View } from 'react-native';
 
+import { NotificationItem } from '@/components/NotificationItem';
 import { useUser } from '@/context/UserContext';
-import * as api from '@/lib/api';
-import { colors, spacing } from '@/lib/theme';
+import { useNotifications } from '@/hooks/useNotifications';
+import { colors, spacing } from '@/constants/colors';
 import type { Notification } from '@/lib/types';
 
-const TYPE_EMOJI: Record<string, string> = {
-  like: '❤️',
-  comment: '💬',
-  dm: '✉️',
-  follow: '👤',
-  milestone: '🏆',
-  viral: '🔥',
-  sponsor_offer: '💰',
-  media: '📰',
-};
+function groupNotifications(notifs: Notification[]) {
+  const now = Date.now();
+  const week = 7 * 24 * 60 * 60 * 1000;
+  const thisWeek: Notification[] = [];
+  const lastWeek: Notification[] = [];
+  const older: Notification[] = [];
+
+  for (const n of notifs) {
+    const age = now - new Date(n.created_at).getTime();
+    if (age < week) thisWeek.push(n);
+    else if (age < week * 2) lastWeek.push(n);
+    else older.push(n);
+  }
+
+  const sections = [];
+  if (thisWeek.length) sections.push({ title: 'Bu hafta', data: thisWeek });
+  if (lastWeek.length) sections.push({ title: 'Geçen hafta', data: lastWeek });
+  if (older.length) sections.push({ title: 'Daha önce', data: older });
+  return sections;
+}
 
 export default function NotificationsScreen() {
   const { user } = useUser();
   const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { notifications, loading, setLoading, load, markRead } = useNotifications(user?.id);
 
   useFocusEffect(
     useCallback(() => {
-      if (!user) return;
       setLoading(true);
-      api
-        .getNotifications(user.id)
-        .then(setNotifications)
-        .catch(() => setNotifications([]))
-        .finally(() => {
-          setLoading(false);
-          api.markNotificationsRead(user.id).catch(() => {});
-        });
-    }, [user])
+      load().finally(() => {
+        setLoading(false);
+        markRead();
+      });
+    }, [load, markRead, setLoading])
   );
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} size="large" />
+        <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
   }
 
+  const sections = groupNotifications(notifications);
+
   return (
-    <FlatList
-      data={notifications}
+    <SectionList
+      sections={sections}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
+      renderSectionHeader={({ section }) => (
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+      )}
       ListEmptyComponent={
         <View style={styles.empty}>
           <Text style={styles.emptyEmoji}>🔔</Text>
@@ -67,71 +70,23 @@ export default function NotificationsScreen() {
         </View>
       }
       renderItem={({ item }) => (
-        <Pressable
-          style={[styles.item, !item.is_read && styles.unread]}
-          onPress={() => item.post_id && router.push(`/post/${item.post_id}`)}
-        >
-          <Text style={styles.emoji}>{TYPE_EMOJI[item.type] ?? '📌'}</Text>
-          <View style={styles.itemContent}>
-            <Text style={styles.content}>{item.content}</Text>
-            <Text style={styles.time}>
-              {new Date(item.created_at).toLocaleString('tr-TR')}
-            </Text>
-          </View>
-        </Pressable>
+        <NotificationItem
+          item={item}
+          onPress={() => {
+            if (item.post_id) router.push(`/post/${item.post_id}`);
+            else if (item.type === 'dm') router.push('/(tabs)/messages');
+          }}
+        />
       )}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  list: {
-    padding: spacing.md,
-  },
-  item: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
-    alignItems: 'center',
-  },
-  unread: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-  },
-  emoji: {
-    fontSize: 24,
-  },
-  itemContent: {
-    flex: 1,
-  },
-  content: {
-    color: colors.text,
-    fontSize: 14,
-  },
-  time: {
-    color: colors.textMuted,
-    fontSize: 11,
-    marginTop: spacing.xs,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingTop: 80,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  emptyText: {
-    color: colors.textMuted,
-    fontSize: 16,
-  },
+  center: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  list: { padding: spacing.md },
+  sectionTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '700', marginBottom: 8, marginTop: 8 },
+  empty: { alignItems: 'center', paddingTop: 80 },
+  emptyEmoji: { fontSize: 48 },
+  emptyText: { color: colors.textMuted, marginTop: spacing.md },
 });

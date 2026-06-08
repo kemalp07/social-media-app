@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '@/lib/theme';
+import { colors } from '@/constants/colors';
 
 interface Props {
   uri?: string | null;

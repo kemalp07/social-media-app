@@ -10,3 +10,4 @@ pydantic-settings==2.7.0
 apscheduler==3.10.4
 firebase-admin==6.6.0
 Pillow==11.1.0
+tqdm==4.67.1

@@ -6,16 +6,16 @@ from app.services.ai_service import generate_dm_response
 from app.services.notification_service import notify_dm
 
 DM_OPENING_TEMPLATES = [
-    "hey! love your content 🔥",
-    "omg your last post was amazing",
-    "hi! been following you for a while, had to say hi",
-    "your aesthetic is everything ✨",
-    "ok but how are you so good at this",
-    "random but your profile is so cool",
-    "hey! would love to collab sometime",
-    "your vibe >>>",
-    "noticed we have similar interests!",
-    "had to reach out, your stuff is fire",
+    "Heyy 👋",
+    "Postun çok güzeldi 🔥",
+    "Seni takip etmeye başladım 😊",
+    "Bu nerede çekildi?",
+    "Collab yapar mısın?",
+    "Nasılsın?",
+    "Profilin çok hoşuma gitti ✨",
+    "Son postun harikaydı!",
+    "Merhaba, uzun zamandır takip ediyorum",
+    "Selam! Tanışmak isterim",
 ]
 
 FREE_DAILY_DM_LIMIT = 5
@@ -27,12 +27,11 @@ def dm_limit_for_tier(tier_level: str) -> int:
 
 
 def calculate_daily_dm_initiations(follower_count: int) -> int:
-    """Tier 1 bots initiate 2-30 DMs/day based on follower count."""
-    if follower_count < 100:
-        return random.randint(2, 5)
-    if follower_count < 1000:
+    if follower_count < 1_000:
+        return random.randint(2, 3)
+    if follower_count < 10_000:
         return random.randint(5, 10)
-    if follower_count < 10000:
+    if follower_count < 100_000:
         return random.randint(10, 20)
     return random.randint(20, 30)
 
@@ -138,6 +137,7 @@ async def send_user_message(conversation_id: UUID, user_id: UUID, content: str) 
 
     bot = conv.data.get("fake_users") or {}
     ai_reply = await generate_dm_response(
+        username=bot.get("username", ""),
         personality_type=bot.get("personality_type", ""),
         interests=bot.get("interests") or [],
         display_name=bot.get("display_name") or bot.get("username", "Bot"),

@@ -1,8 +1,10 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,19 +14,35 @@ import {
   View,
 } from 'react-native';
 
+import { VibeLogo } from '@/components/VibeLogo';
 import { useUser } from '@/context/UserContext';
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing } from '@/constants/colors';
+
+const STEPS = ['welcome', 'profile', 'ready'] as const;
 
 export default function Onboarding() {
   const { register } = useUser();
   const router = useRouter();
+  const [step, setStep] = useState(0);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleStart = async () => {
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled) setAvatarUri(result.assets[0].uri);
+  };
+
+  const handleFinish = async () => {
     if (!username.trim() || !displayName.trim()) {
-      Alert.alert('Hata', 'Kullanıcı adı ve görünen ad gerekli.');
+      Alert.alert('Hata', 'Kullanıcı adı ve isim gerekli.');
       return;
     }
     setLoading(true);
@@ -32,7 +50,7 @@ export default function Onboarding() {
       await register(username.trim().toLowerCase(), displayName.trim());
       router.replace('/(tabs)');
     } catch {
-      Alert.alert('Hata', 'Hesap oluşturulamadı. Kullanıcı adı alınmış olabilir.');
+      Alert.alert('Hata', 'Hesap oluşturulamadı.');
     } finally {
       setLoading(false);
     }
@@ -43,90 +61,109 @@ export default function Onboarding() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.logo}>GlowUp</Text>
-      <Text style={styles.subtitle}>İnfluencer yolculuğun başlıyor ✨</Text>
-
-      <View style={styles.form}>
-        <Text style={styles.label}>Kullanıcı adı</Text>
-        <TextInput
-          style={styles.input}
-          value={username}
-          onChangeText={setUsername}
-          placeholder="kullaniciadi"
-          placeholderTextColor={colors.textMuted}
-          autoCapitalize="none"
-          maxLength={30}
-        />
-
-        <Text style={styles.label}>Görünen ad</Text>
-        <TextInput
-          style={styles.input}
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Adın"
-          placeholderTextColor={colors.textMuted}
-          maxLength={50}
-        />
+      <View style={styles.dots}>
+        {STEPS.map((_, i) => (
+          <View key={i} style={[styles.dot, i === step && styles.dotActive]} />
+        ))}
       </View>
 
-      <Pressable style={styles.button} onPress={handleStart} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Başla 🚀</Text>
-        )}
-      </Pressable>
+      {step === 0 && (
+        <View style={styles.step}>
+          <VibeLogo size="lg" />
+          <Text style={styles.title}>Sosyal medya deneyimini yaşa</Text>
+          <Text style={styles.subtitle}>
+            Gerçek gibi hissettiren yapay zeka sosyal dünyasına hoş geldin
+          </Text>
+          <Pressable style={styles.btn} onPress={() => setStep(1)}>
+            <Text style={styles.btnText}>Başlayalım →</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {step === 1 && (
+        <View style={styles.step}>
+          <Text style={styles.stepTitle}>Profil oluştur</Text>
+          <Pressable onPress={pickAvatar} style={styles.avatarPicker}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
+            ) : (
+              <Text style={styles.avatarPlaceholder}>📷</Text>
+            )}
+          </Pressable>
+          <TextInput
+            style={styles.input}
+            placeholder="Adın"
+            placeholderTextColor={colors.textMuted}
+            value={displayName}
+            onChangeText={setDisplayName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="@kullaniciadi"
+            placeholderTextColor={colors.textMuted}
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Bio (opsiyonel)"
+            placeholderTextColor={colors.textMuted}
+            value={bio}
+            onChangeText={setBio}
+          />
+          <Pressable style={styles.btn} onPress={() => setStep(2)}>
+            <Text style={styles.btnText}>Devam →</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {step === 2 && (
+        <View style={styles.step}>
+          <Text style={styles.readyEmoji}>🎉</Text>
+          <Text style={styles.stepTitle}>Hesabın oluşturuldu!</Text>
+          <Text style={styles.subtitle}>İlk postunu atmaya hazır mısın?</Text>
+          <Text style={styles.followerStart}>0 takipçi</Text>
+          <Pressable style={styles.btn} onPress={handleFinish} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.btnText}>Keşfet →</Text>
+            )}
+          </Pressable>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    padding: spacing.lg,
-    justifyContent: 'center',
+  container: { flex: 1, backgroundColor: colors.bg, padding: spacing.lg, justifyContent: 'center' },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: spacing.xl, position: 'absolute', top: 60, alignSelf: 'center', width: '100%' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
+  dotActive: { backgroundColor: colors.primary, width: 24 },
+  step: { alignItems: 'center', gap: spacing.md },
+  title: { color: colors.text, fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: spacing.lg },
+  subtitle: { color: colors.textMuted, fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  stepTitle: { color: colors.text, fontSize: 24, fontWeight: '700' },
+  readyEmoji: { fontSize: 64 },
+  followerStart: { color: colors.secondary, fontSize: 32, fontWeight: '800' },
+  avatarPicker: {
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: colors.primary,
   },
-  logo: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: colors.accent,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-    fontSize: 16,
-  },
-  form: {
-    gap: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  label: {
-    color: colors.textMuted,
-    fontSize: 13,
-    marginTop: spacing.sm,
-  },
+  avatar: { width: 100, height: 100, borderRadius: 50 },
+  avatarPlaceholder: { fontSize: 36 },
   input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    color: colors.text,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    width: '100%', backgroundColor: colors.surface, borderRadius: 12,
+    padding: spacing.md, color: colors.text, fontSize: 16,
+    borderWidth: 1, borderColor: colors.border,
   },
-  button: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    padding: spacing.md,
-    alignItems: 'center',
+  btn: {
+    backgroundColor: colors.primary, borderRadius: 12,
+    paddingVertical: spacing.md, paddingHorizontal: spacing.xl,
+    alignItems: 'center', marginTop: spacing.md, width: '100%',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  btnText: { color: '#fff', fontSize: 18, fontWeight: '700' },
 });

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import fake_users, messages, notifications, posts, users
+from app.routers import fake_users, feed, messages, notifications, posts, users
 from app.scheduler import setup_scheduler
 
 
@@ -30,6 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(users.router, prefix="/api")
+app.include_router(feed.router, prefix="/api")
 app.include_router(posts.router, prefix="/api")
 app.include_router(messages.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")

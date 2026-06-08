@@ -1,10 +1,11 @@
 """
-Seed fake users into Supabase.
-Tier 3: 995,000 (batch insert, minimal fields)
-Tier 2: 4,800
-Tier 1: 200 (full characters)
+Vibe fake user seed script.
+Tier 3: 995K | Tier 2: 4.8K | Tier 1: 200 (20 hardcoded + generated)
 
-Usage: python -m scripts.seed_fake_users --tier 3 --batch 10000
+Usage:
+  python -m scripts.seed_fake_users --tier 1
+  python -m scripts.seed_fake_users --tier 2 --count 4800
+  python -m scripts.seed_fake_users --tier 3 --batch 1000
 """
 import argparse
 import random
@@ -15,131 +16,140 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.database import get_supabase
 
-TIER1_PERSONALITIES = [
-    "warm_supportive", "witty_sarcastic", "artsy_mysterious", "sporty_competitive",
-    "foodie_enthusiast", "travel_wanderer", "fashion_forward", "tech_nerd",
-    "music_lover", "bookworm_intellectual", "fitness_motivator", "comedy_king",
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable, **kwargs):
+        return iterable
+
+ERKEK = ["Ahmet", "Mehmet", "Ali", "Mustafa", "Emre", "Burak", "Can", "Murat", "Oğuz", "Kemal",
+         "Serkan", "Tolga", "Barış", "Cem", "Deniz", "Eren", "Furkan", "Gökhan", "Hakan", "İbrahim"]
+KADIN = ["Ayşe", "Fatma", "Zeynep", "Elif", "Merve", "Selin", "Büşra", "Esra", "Gamze", "Hande",
+         "İrem", "Kübra", "Leyla", "Melis", "Nazlı", "Özge", "Pınar", "Seda", "Tuğba", "Yasemin"]
+SOYAD = ["Yılmaz", "Kaya", "Demir", "Çelik", "Şahin", "Yıldız", "Arslan", "Doğan", "Aydın", "Öztürk",
+         "Koç", "Kurt", "Aslan", "Polat", "Erdoğan", "Güneş", "Acar", "Tekin", "Bulut", "Taş"]
+
+TIER1_HARDCODED = [
+    {"username": "ayse_fit", "display_name": "Ayşe Kaya", "personality_type": "friendly", "interests": ["fitness", "nutrition", "travel"], "bio": "Fitness & sağlıklı yaşam 💪 Koşu tutkunu"},
+    {"username": "mert_photo", "display_name": "Mert Arslan", "personality_type": "cool", "interests": ["photography", "music", "coffee"], "bio": "Fotoğrafçı | Kahve bağımlısı ☕"},
+    {"username": "zeynep_mode", "display_name": "Zeynep Bal", "personality_type": "flirty", "interests": ["fashion", "beauty", "lifestyle"], "bio": "Moda & güzellik ✨ DM açık"},
+    {"username": "sponsor_spor", "display_name": "SportBrand TR", "personality_type": "brand", "interests": ["fitness", "sport"], "bio": "Resmi sponsorluk hesabı 🏆 İşbirliği için DM"},
+    {"username": "hater_anon", "display_name": "anon_x99", "personality_type": "hater", "interests": [], "bio": "..."},
+    {"username": "elif_yoga", "display_name": "Elif Demir", "personality_type": "friendly", "interests": ["yoga", "wellness", "nature"], "bio": "Yoga eğitmeni 🧘 Huzur bul"},
+    {"username": "can_music", "display_name": "Can Yıldız", "personality_type": "cool", "interests": ["music", "guitar", "concerts"], "bio": "Müzisyen 🎸 Yeni single yakında"},
+    {"username": "merve_food", "display_name": "Merve Koç", "personality_type": "friendly", "interests": ["food", "cooking", "travel"], "bio": "Yemek blogcusu 🍕 Tarifler için takip et"},
+    {"username": "burak_tech", "display_name": "Burak Şahin", "personality_type": "cool", "interests": ["tech", "gaming", "ai"], "bio": "Tech reviewer | Gamer 🎮"},
+    {"username": "selin_travel", "display_name": "Selin Aydın", "personality_type": "flirty", "interests": ["travel", "photography", "adventure"], "bio": "Dünyayı geziyorum 🌍 32 ülke"},
+    {"username": "emre_fitness", "display_name": "Emre Güneş", "personality_type": "friendly", "interests": ["fitness", "bodybuilding", "nutrition"], "bio": "PT & coach 💪 DM'den program"},
+    {"username": "buse_fashion", "display_name": "Büşra Çelik", "personality_type": "flirty", "interests": ["fashion", "shopping", "lifestyle"], "bio": "Stil danışmanı 👗"},
+    {"username": "oguz_photo", "display_name": "Oğuz Polat", "personality_type": "cool", "interests": ["photography", "nature", "travel"], "bio": "Doğa fotoğrafçısı 📸"},
+    {"username": "nazli_art", "display_name": "Nazlı Erdoğan", "personality_type": "friendly", "interests": ["art", "design", "museums"], "bio": "Sanatçı & illüstratör 🎨"},
+    {"username": "tolga_comedy", "display_name": "Tolga Acar", "personality_type": "flirty", "interests": ["comedy", "entertainment", "memes"], "bio": "Komedyen 😂 Gülmek serbest"},
+    {"username": "pinar_beauty", "display_name": "Pınar Tekin", "personality_type": "friendly", "interests": ["beauty", "skincare", "makeup"], "bio": "Makyaj artisti 💄"},
+    {"username": "hakan_sport", "display_name": "Hakan Bulut", "personality_type": "cool", "interests": ["football", "sport", "fitness"], "bio": "Eski futbolcular | Analist ⚽"},
+    {"username": "yasemin_book", "display_name": "Yasemin Taş", "personality_type": "friendly", "interests": ["books", "writing", "poetry"], "bio": "Yazar & okur 📚"},
+    {"username": "deniz_surf", "display_name": "Deniz Kurt", "personality_type": "cool", "interests": ["surf", "beach", "travel"], "bio": "Sörfçü 🏄 Bodrum"},
+    {"username": "kubra_dance", "display_name": "Kübra Aslan", "personality_type": "flirty", "interests": ["dance", "music", "fitness"], "bio": "Dans eğitmeni 💃"},
 ]
 
-TIER1_INTERESTS = [
-    ["photography", "travel", "coffee"],
-    ["fitness", "health", "yoga"],
-    ["fashion", "beauty", "lifestyle"],
-    ["music", "concerts", "vinyl"],
-    ["food", "cooking", "restaurants"],
-    ["gaming", "tech", "anime"],
-    ["art", "design", "museums"],
-    ["sports", "basketball", "running"],
-    ["books", "writing", "poetry"],
-    ["nature", "hiking", "camping"],
+BIOS_T2 = [
+    "Hayat güzel ✨", "Kahve ve kitap ☕📚", "Yolculuk tutkunu 🌍",
+    "Spor yap, mutlu ol 💪", "Anı yaşa 📸", "Pozitif enerji ⚡",
+    "İstanbul 🌉", "Doğa sever 🌿", "Müzik her şeydir 🎵",
 ]
 
-FIRST_NAMES = [
-    "Emma", "Liam", "Olivia", "Noah", "Ava", "Ethan", "Sophia", "Mason",
-    "Isabella", "Lucas", "Mia", "Oliver", "Charlotte", "Elijah", "Amelia",
-    "James", "Harper", "Benjamin", "Evelyn", "Sebastian", "Luna", "Jack",
-    "Camila", "Henry", "Penelope", "Leo", "Aria", "Daniel", "Chloe", "Mateo",
-]
-
-LAST_NAMES = [
-    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller",
-    "Davis", "Rodriguez", "Martinez", "Anderson", "Taylor", "Thomas", "Moore",
-    "Jackson", "Martin", "Lee", "Thompson", "White", "Harris", "Clark", "Lewis",
+EXTRA_PERSONALITIES = ["friendly", "cool", "flirty", "friendly", "cool"]
+EXTRA_INTERESTS = [
+    ["fitness", "health"], ["travel", "food"], ["music", "art"],
+    ["fashion", "beauty"], ["tech", "gaming"], ["sport", "nature"],
 ]
 
 
-def generate_username(tier: int, index: int) -> str:
-    if tier == 3:
-        return f"u{index:07d}"
-    first = random.choice(FIRST_NAMES).lower()
-    last = random.choice(LAST_NAMES).lower()
-    suffix = random.randint(1, 999)
-    return f"{first}_{last}{suffix}"
+def turkish_name() -> tuple[str, str, str]:
+    is_male = random.random() < 0.5
+    first = random.choice(ERKEK if is_male else KADIN)
+    last = random.choice(SOYAD)
+    suffix = random.randint(100, 9999)
+    tag = random.choice(["fit", "life", "daily", "world", "tr", "x", ""])
+    username = f"{first.lower()}_{tag}_{suffix}".replace("__", "_").strip("_") if tag else f"{first.lower()}_{suffix}"
+    return username, f"{first} {last}", first
 
 
-def seed_tier3(count: int, batch_size: int = 5000):
+def seed_tier3(count: int, batch_size: int = 1000):
     db = get_supabase()
-    existing = db.table("fake_users").select("id", count="exact").eq("tier", 3).execute()
-    start_index = existing.count or 0
-
-    for batch_start in range(0, count, batch_size):
+    for batch_start in tqdm(range(0, count, batch_size), desc="Tier 3"):
         batch = []
-        for i in range(batch_start, min(batch_start + batch_size, count)):
-            idx = start_index + i
-            username = generate_username(3, idx)
+        for _ in range(min(batch_size, count - batch_start)):
+            username, display, _ = turkish_name()
             batch.append({
                 "username": username,
+                "display_name": display,
                 "avatar_seed": username,
                 "tier": 3,
                 "is_open": False,
+                "follower_count": random.randint(0, 5000),
+                "post_count": random.randint(0, 500),
             })
         db.table("fake_users").insert(batch).execute()
-        print(f"Tier 3: inserted {batch_start + len(batch)}/{count}")
 
 
 def seed_tier2(count: int, batch_size: int = 500):
     db = get_supabase()
-    for batch_start in range(0, count, batch_size):
+    for batch_start in tqdm(range(0, count, batch_size), desc="Tier 2"):
         batch = []
-        for i in range(batch_start, min(batch_start + batch_size, count)):
-            username = generate_username(2, i)
-            display = f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
+        for _ in range(min(batch_size, count - batch_start)):
+            username, display, _ = turkish_name()
             batch.append({
                 "username": username,
                 "display_name": display,
                 "avatar_seed": username,
                 "tier": 2,
-                "is_open": True,
-                "bio": random.choice([
-                    "Living my best life ✨", "Coffee & sunsets ☕", "Just vibing",
-                    "Creating memories", "Adventure seeker", "Dream big",
-                ]),
+                "is_open": False,
+                "bio": random.choice(BIOS_T2),
                 "follower_count": random.randint(500, 50000),
                 "post_count": random.randint(1, 5),
                 "is_verified": random.random() < 0.05,
             })
         db.table("fake_users").insert(batch).execute()
-        print(f"Tier 2: inserted {batch_start + len(batch)}/{count}")
 
 
 def seed_tier1(count: int):
     db = get_supabase()
-    for i in range(count):
-        first = random.choice(FIRST_NAMES)
-        last = random.choice(LAST_NAMES)
-        username = f"{first.lower()}_{last.lower()}{random.randint(1, 99)}"
-        personality = random.choice(TIER1_PERSONALITIES)
-        interests = random.choice(TIER1_INTERESTS)
+    for char in tqdm(TIER1_HARDCODED, desc="Tier 1 hardcoded"):
+        db.table("fake_users").insert({
+            **char,
+            "avatar_seed": char["username"],
+            "tier": 1,
+            "is_open": True,
+            "follower_count": random.randint(10000, 500000),
+            "post_count": random.randint(20, 200),
+            "is_verified": char["personality_type"] == "brand" or random.random() < 0.3,
+        }).execute()
 
-        bios = {
-            "warm_supportive": f"Hey, I'm {first}! Always here to hype you up 💕",
-            "witty_sarcastic": f"{first} | Professional overthinker | DM for bad jokes",
-            "artsy_mysterious": "creating worlds through lens and light ✦",
-            "sporty_competitive": f"🏆 Athlete | {first} | Never backing down",
-            "foodie_enthusiast": f"🍕 {first} | If I didn't post it, I didn't eat it",
-        }
-
+    remaining = count - len(TIER1_HARDCODED)
+    for i in tqdm(range(remaining), desc="Tier 1 generated"):
+        username, display, first = turkish_name()
+        personality = random.choice(EXTRA_PERSONALITIES)
         db.table("fake_users").insert({
             "username": username,
-            "display_name": f"{first} {last}",
+            "display_name": display,
             "avatar_seed": username,
             "tier": 1,
             "is_open": True,
             "personality_type": personality,
-            "interests": interests,
-            "bio": bios.get(personality, f"Hi, I'm {first}!"),
-            "follower_count": random.randint(10000, 500000),
-            "post_count": random.randint(20, 200),
-            "is_verified": random.random() < 0.3,
+            "interests": random.choice(EXTRA_INTERESTS),
+            "bio": f"Merhaba, ben {first}! ✨",
+            "follower_count": random.randint(5000, 200000),
+            "post_count": random.randint(10, 100),
+            "is_verified": random.random() < 0.15,
         }).execute()
-        print(f"Tier 1: inserted {i + 1}/{count}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--tier", type=int, choices=[1, 2, 3], required=True)
     parser.add_argument("--count", type=int, default=None)
-    parser.add_argument("--batch", type=int, default=5000)
+    parser.add_argument("--batch", type=int, default=1000)
     args = parser.parse_args()
 
     defaults = {1: 200, 2: 4800, 3: 995000}
@@ -152,4 +162,4 @@ if __name__ == "__main__":
     else:
         seed_tier1(count)
 
-    print("Done!")
+    print("✅ Tamamlandı!")

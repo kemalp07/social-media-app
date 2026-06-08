@@ -19,6 +19,7 @@ async def add_comments_to_post(
     caption: str,
     content_type: str,
     quality_score: float,
+    comment_hints: list[str] | None = None,
 ) -> int:
     """Add template + AI comments based on post quality."""
     db = get_supabase()
@@ -92,6 +93,7 @@ async def add_comments_to_post(
                 personality_type=user.get("personality_type", ""),
                 interests=user.get("interests") or [],
                 display_name=user.get("display_name") or user["username"],
+                comment_hints=comment_hints,
             )
         )
 

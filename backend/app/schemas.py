@@ -35,6 +35,8 @@ class PostAnalysis(BaseModel):
     quality_score: Decimal
     content_type: str
     keywords: list[str]
+    engagement_prediction: str = "medium"
+    comment_hints: list[str] = []
 
 
 class PostResponse(BaseModel):

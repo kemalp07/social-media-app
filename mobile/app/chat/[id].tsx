@@ -12,9 +12,10 @@ import {
   View,
 } from 'react-native';
 
+import { ChatBubble } from '@/components/ChatBubble';
 import { useUser } from '@/context/UserContext';
 import * as api from '@/lib/api';
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing } from '@/constants/colors';
 import type { Message } from '@/lib/types';
 
 export default function ChatScreen() {
@@ -24,6 +25,7 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [typing, setTyping] = useState(false);
   const listRef = useRef<FlatList>(null);
 
   const loadMessages = useCallback(async () => {
@@ -33,9 +35,7 @@ export default function ChatScreen() {
   }, [user, id]);
 
   useEffect(() => {
-    loadMessages()
-      .catch(() => setMessages([]))
-      .finally(() => setLoading(false));
+    loadMessages().catch(() => setMessages([])).finally(() => setLoading(false));
   }, [loadMessages]);
 
   const handleSend = async () => {
@@ -53,33 +53,32 @@ export default function ChatScreen() {
     };
     setMessages((prev) => [...prev, optimistic]);
 
+    setTyping(true);
+    const delay = 1000 + Math.random() * 2000;
+
     try {
       const result = await api.sendMessage(id, user.id, content);
-      await loadMessages();
-
-      if (!result.replied) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `read-${Date.now()}`,
-            sender: 'ai',
-            content: '...',
-            created_at: new Date().toISOString(),
-            is_read: false,
-          },
-        ]);
-      }
+      setTimeout(async () => {
+        setTyping(false);
+        if (result.replied) {
+          await loadMessages();
+        } else {
+          setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+          setMessages((prev) => [...prev, optimistic]);
+        }
+        setSending(false);
+      }, delay);
     } catch {
-      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-    } finally {
+      setTyping(false);
       setSending(false);
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
     }
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} size="large" />
+        <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
   }
@@ -96,22 +95,17 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         onContentSizeChange={() => listRef.current?.scrollToEnd()}
-        renderItem={({ item }) => {
-          const isUser = item.sender === 'user';
-          const isReadReceipt = item.content === '...';
-          return (
-            <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-              {isReadReceipt ? (
-                <Text style={styles.readReceipt}>Görüldü</Text>
-              ) : (
-                <Text style={[styles.bubbleText, isUser && styles.userText]}>{item.content}</Text>
-              )}
-            </View>
-          );
-        }}
+        ListFooterComponent={typing ? <ChatBubble content="" isUser={false} isTyping /> : null}
+        renderItem={({ item }) => (
+          <ChatBubble
+            content={item.content}
+            isUser={item.sender === 'user'}
+            time={new Date(item.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+          />
+        )}
       />
-
       <View style={styles.inputRow}>
+        <Text style={styles.camera}>📷</Text>
         <TextInput
           style={styles.input}
           value={text}
@@ -134,79 +128,23 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  center: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  list: {
-    padding: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  bubble: {
-    maxWidth: '80%',
-    borderRadius: 16,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.accent,
-    borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.surface,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleText: {
-    color: colors.text,
-    fontSize: 15,
-  },
-  userText: {
-    color: '#fff',
-  },
-  readReceipt: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  list: { padding: spacing.md },
   inputRow: {
-    flexDirection: 'row',
-    padding: spacing.md,
-    gap: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    alignItems: 'flex-end',
+    flexDirection: 'row', padding: spacing.md, gap: spacing.sm,
+    borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'flex-end',
   },
+  camera: { fontSize: 22, paddingBottom: 10 },
   input: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    color: colors.text,
-    fontSize: 15,
-    maxHeight: 100,
+    flex: 1, backgroundColor: colors.surface, borderRadius: 22,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    color: colors.text, fontSize: 15, maxHeight: 100,
   },
   sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
   },
-  sendDisabled: {
-    opacity: 0.5,
-  },
-  sendText: {
-    color: '#fff',
-    fontSize: 18,
-  },
+  sendDisabled: { opacity: 0.5 },
+  sendText: { color: '#fff', fontSize: 18 },
 });

@@ -15,7 +15,7 @@ import {
 
 import { useUser } from '@/context/UserContext';
 import * as api from '@/lib/api';
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing } from '@/constants/colors';
 
 export default function CreateScreen() {
   const { user, refreshUser } = useUser();
@@ -67,8 +67,8 @@ export default function CreateScreen() {
       const viral = result.is_viral ? '\n🔥 Viral olma ihtimali tetiklendi!' : '';
 
       Alert.alert(
-        'Gönderi paylaşıldı! 🎉',
-        `Kalite: ${result.analysis?.quality_score ?? '?'}/10\n~${likes} beğeni gelecek\n+${gain} takipçi${viral}`,
+        'Paylaşıldı! Beğeniler geliyor 🚀',
+        `AI Skor: ${result.analysis?.quality_score ?? '?'}/10\n~${likes} beğeni\n+${gain} takipçi${viral}`,
         [{ text: 'Tamam', onPress: () => router.push('/(tabs)') }]
       );
       setImageUri(null);
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   postBtn: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: spacing.md,
     alignItems: 'center',

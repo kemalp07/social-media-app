@@ -1,46 +1,45 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { PostCard } from '@/components/PostCard';
+import { StoryRing } from '@/components/StoryRing';
 import { useUser } from '@/context/UserContext';
+import { useFeed } from '@/hooks/useFeed';
 import * as api from '@/lib/api';
-import { colors, spacing } from '@/lib/theme';
-import type { Post } from '@/lib/types';
+import { colors, spacing } from '@/constants/colors';
+import type { FakeUser } from '@/lib/types';
 
 export default function FeedScreen() {
   const { user } = useUser();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadFeed = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await api.getFeed(user.id);
-      setPosts(data);
-    } catch {
-      setPosts([]);
-    }
-  }, [user]);
+  const router = useRouter();
+  const { posts, loading, setLoading, refreshing, load, refresh } = useFeed(user?.id);
+  const [stories, setStories] = useState<FakeUser[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      loadFeed().finally(() => setLoading(false));
-    }, [loadFeed])
+      load().finally(() => setLoading(false));
+    }, [load, setLoading])
   );
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadFeed();
-    setRefreshing(false);
-  };
+  useEffect(() => {
+    api.getTier1Characters().then(setStories).catch(() => setStories([]));
+  }, []);
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} size="large" />
+        <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
   }
@@ -52,23 +51,38 @@ export default function FeedScreen() {
       renderItem={({ item }) => <PostCard post={item} />}
       contentContainerStyle={styles.list}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
       }
       ListHeaderComponent={
-        user ? (
-          <View style={styles.header}>
-            <Text style={styles.greeting}>Merhaba, {user.display_name} 👋</Text>
+        <View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stories}>
+            <StoryRing
+              name={user?.display_name ?? 'Sen'}
+              avatarUrl={user?.avatar_url}
+              isOwn
+              onPress={() => router.push('/(tabs)/create')}
+            />
+            {stories.slice(0, 12).map((s) => (
+              <StoryRing
+                key={s.id}
+                name={s.display_name}
+                avatarUrl={s.avatar_url}
+                onPress={() => router.push('/characters')}
+              />
+            ))}
+          </ScrollView>
+          {user && (
             <Text style={styles.followers}>
               {user.follower_count.toLocaleString('tr-TR')} takipçi
             </Text>
-          </View>
-        ) : null
+          )}
+        </View>
       }
       ListEmptyComponent={
         <View style={styles.empty}>
           <Text style={styles.emptyEmoji}>📸</Text>
           <Text style={styles.emptyTitle}>Henüz gönderi yok</Text>
-          <Text style={styles.emptyText}>İlk fotoğrafını paylaş ve beğenileri izle!</Text>
+          <Text style={styles.emptyText}>İlk fotoğrafını paylaş!</Text>
         </View>
       }
     />
@@ -76,46 +90,12 @@ export default function FeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  list: {
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  header: {
-    marginBottom: spacing.md,
-  },
-  greeting: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  followers: {
-    color: colors.accent,
-    fontSize: 14,
-    marginTop: spacing.xs,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingTop: 80,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyText: {
-    color: colors.textMuted,
-    fontSize: 14,
-    marginTop: spacing.sm,
-    textAlign: 'center',
-  },
+  center: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  list: { padding: spacing.md, paddingBottom: spacing.xl },
+  stories: { marginBottom: spacing.md, paddingVertical: spacing.sm },
+  followers: { color: colors.secondary, fontSize: 14, marginBottom: spacing.md, fontWeight: '600' },
+  empty: { alignItems: 'center', paddingTop: 60 },
+  emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
+  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  emptyText: { color: colors.textMuted, fontSize: 14, marginTop: spacing.sm },
 });

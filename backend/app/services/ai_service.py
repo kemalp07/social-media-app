@@ -10,18 +10,27 @@ from app.schemas import PostAnalysis
 genai.configure(api_key=settings.gemini_api_key)
 MODEL = genai.GenerativeModel("gemini-2.0-flash")
 
+PERSONALITY_PROMPTS = {
+    "friendly": "Sıcak, samimi, emoji kullanan, destekleyici biri. Türkçe konuş.",
+    "cool": "Sakin, kısa cevaplar veren, çok heyecanlanmayan, cool biri. Türkçe.",
+    "flirty": "Biraz çekingen ama ilgili, iltifat eden, eğlenceli biri. Türkçe.",
+    "hater": "Sinir bozucu, bazen eleştiren ama ayrılmayan, alaycı biri. Türkçe.",
+    "brand": "Profesyonel, sponsorluk teklifi yapan marka hesabı. Türkçe.",
+}
+
 
 async def analyze_post(image_url: str, caption: str) -> PostAnalysis:
-    """Analyze post image + caption with Gemini Flash."""
-    prompt = f"""Analyze this social media post.
+    prompt = f"""Bu fotoğrafı sosyal medya post kalite skoru için analiz et.
 Caption: "{caption}"
 
-Return ONLY valid JSON with:
-- quality_score: float 1-10 (composition, appeal, engagement potential)
-- content_type: one of selfie, food, landscape, sport, other
-- keywords: array of 3-5 relevant keywords
-
-Example: {{"quality_score": 7.5, "content_type": "selfie", "keywords": ["sunset", "portrait", "smile"]}}"""
+SADECE JSON döndür:
+{{
+  "quality_score": 1-10 float,
+  "content_type": "selfie|food|travel|sport|nature|other",
+  "keywords": ["anahtar", "kelimeler"],
+  "engagement_prediction": "low|medium|high|viral",
+  "comment_hints": ["Bu yorumu tetikleyebilir", "..."]
+}}"""
 
     try:
         response = MODEL.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_url}])
@@ -33,11 +42,19 @@ Example: {{"quality_score": 7.5, "content_type": "selfie", "keywords": ["sunset"
                 quality_score=Decimal(str(min(10, max(1, data.get("quality_score", 5))))),
                 content_type=data.get("content_type", "other"),
                 keywords=data.get("keywords", []),
+                engagement_prediction=data.get("engagement_prediction", "medium"),
+                comment_hints=data.get("comment_hints", []),
             )
     except Exception:
         pass
 
-    return PostAnalysis(quality_score=Decimal("5.0"), content_type="other", keywords=[])
+    return PostAnalysis(
+        quality_score=Decimal("5.0"),
+        content_type="other",
+        keywords=[],
+        engagement_prediction="medium",
+        comment_hints=[],
+    )
 
 
 async def generate_ai_comment(
@@ -46,26 +63,28 @@ async def generate_ai_comment(
     personality_type: str,
     interests: list[str],
     display_name: str,
+    comment_hints: list[str] | None = None,
 ) -> str:
-    """Generate a personality-driven comment from a Tier 1 character."""
-    interests_str = ", ".join(interests or ["general topics"])
-    prompt = f"""You are {display_name}, a social media personality.
-Personality: {personality_type or 'friendly and supportive'}
-Interests: {interests_str}
+    personality = PERSONALITY_PROMPTS.get(personality_type, PERSONALITY_PROMPTS["friendly"])
+    hints = ", ".join(comment_hints or [])
+    prompt = f"""Sen @{display_name} adlı sosyal medya kullanıcısısın.
+Kişilik: {personality}
+İlgi alanları: {', '.join(interests or [])}
+Yorum ipuçları: {hints}
 
-Write ONE short, authentic comment (max 100 chars) on this post.
+Bu posta kısa, doğal bir Türkçe yorum yaz (max 80 karakter).
 Caption: "{caption}"
-Be natural, not generic. No hashtags. Match your personality."""
+Hashtag kullanma."""
 
     try:
         response = MODEL.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_url}])
-        comment = response.text.strip().strip('"')
-        return comment[:150]
+        return response.text.strip().strip('"')[:120]
     except Exception:
-        return "Love this! 🔥"
+        return "Çok güzel! 🔥"
 
 
 async def generate_dm_response(
+    username: str,
     personality_type: str,
     interests: list[str],
     display_name: str,
@@ -73,30 +92,26 @@ async def generate_dm_response(
     conversation_history: list[dict],
     user_message: str,
 ) -> str:
-    """Generate AI DM response maintaining character personality."""
-    history_text = "\n".join(
-        f"{'User' if m['sender'] == 'user' else display_name}: {m['content']}"
+    personality = PERSONALITY_PROMPTS.get(personality_type, PERSONALITY_PROMPTS["friendly"])
+    history = "\n".join(
+        f"{'Sen' if m['sender'] == 'ai' else 'Kullanıcı'}: {m['content']}"
         for m in conversation_history[-10:]
     )
-    interests_str = ", ".join(interests or [])
 
-    prompt = f"""You are {display_name} messaging on a social app.
-Bio: {bio or 'Social media personality'}
-Personality: {personality_type or 'warm, engaging, slightly mysterious'}
-Interests: {interests_str}
+    prompt = f"""Sen @{username} adlı sosyal medya kullanıcısısın.
+Kişilik: {personality}
+İlgi alanları: {', '.join(interests or [])}
+Bio: {bio or ''}
 
-Recent conversation:
-{history_text}
+Önceki konuşma:
+{history}
 
-User just said: "{user_message}"
+Kullanıcı: "{user_message}"
 
-Reply as {display_name} in 1-3 short messages style (one paragraph).
-Stay in character. Be realistic - sometimes brief, sometimes don't answer everything.
-Occasionally leave on read energy is ok in tone but always reply.
-Max 200 characters. No meta commentary."""
+Kısa, doğal sosyal medya dili kullan. Max 2 cümle. Türkçe."""
 
     try:
         response = MODEL.generate_content(prompt)
-        return response.text.strip()[:300]
+        return response.text.strip()[:250]
     except Exception:
-        return "haha fair point 😊"
+        return "haha doğru söylüyorsun 😊"
