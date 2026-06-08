@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     def async_database_url(self) -> str:
         url = self.database_url
         if url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        # asyncpg sslmode'u URL'de kabul etmiyor, connect_args ile veriyoruz
+        url = url.replace("?sslmode=require", "").replace("&sslmode=require", "")
         return url
 
     @property

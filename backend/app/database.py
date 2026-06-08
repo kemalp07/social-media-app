@@ -6,8 +6,8 @@ from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 connect_args: dict = {}
-if "sslmode=require" in settings.database_url or "neon.tech" in settings.database_url:
-    connect_args["ssl"] = True
+if "neon.tech" in settings.database_url or "sslmode=require" in settings.database_url:
+    connect_args["ssl"] = "require"
 
 engine = create_async_engine(
     settings.async_database_url,
