@@ -12,6 +12,17 @@ from app.services.avatar_service import dicebear_url
 router = APIRouter(prefix="/fake-users", tags=["fake-users"])
 
 
+@router.get("/explore/posts")
+async def list_explore_posts(limit: int = 60, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(FakePost).order_by(FakePost.created_at.desc()).limit(limit)
+    )
+    return [
+        {"id": str(p.id), "image_url": p.image_url, "caption": p.caption or ""}
+        for p in result.scalars().all()
+    ]
+
+
 @router.get("/{fake_user_id}")
 async def get_fake_user(fake_user_id: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(FakeUser).where(FakeUser.id == fake_user_id))

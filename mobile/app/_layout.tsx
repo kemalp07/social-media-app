@@ -22,7 +22,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="post/[id]" options={{ title: 'Gönderi' }} />
-          <Stack.Screen name="chat/[id]" options={{ title: 'Mesajlar' }} />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="characters" options={{ title: 'Karakterler' }} />
         </Stack>
       </View>

@@ -14,15 +14,10 @@ import { Avatar } from '@/components/Avatar';
 import { colors, spacing } from '@/constants/colors';
 import type { Post } from '@/lib/types';
 
-const ICONS = {
-  like: require('../assets/icons/icon_like.png'),
-  likeActive: require('../assets/icons/icon_like_active.png'),
-  comment: require('../assets/icons/icon_comment.png'),
-  share: require('../assets/icons/icon_share.png'),
-  save: require('../assets/icons/icon_save.png'),
-} as const;
-
+const ICON_SIZE = 26;
 const ICON_WHITE = '#ffffff';
+const HEART_ACTIVE = '#ff3040';
+
 interface Props {
   post: Post;
 }
@@ -102,26 +97,32 @@ export function PostCard({ post }: Props) {
         <Animated.View
           style={[styles.bigHeart, { transform: [{ scale: heartScale }], opacity: heartScale }]}
         >
-          <Image source={ICONS.likeActive} style={styles.bigHeartIcon} />
-        </Animated.View>      </Pressable>
+          <Ionicons name="heart" size={80} color={HEART_ACTIVE} />
+        </Animated.View>
+      </Pressable>
 
       <View style={styles.actions}>
         <View style={styles.actionsLeft}>
           <Pressable onPress={handleLike} hitSlop={6}>
-            <Image
-              source={liked ? ICONS.likeActive : ICONS.like}
-              style={styles.actionIcon}
+            <Ionicons
+              name={liked ? 'heart' : 'heart-outline'}
+              size={ICON_SIZE}
+              color={liked ? HEART_ACTIVE : ICON_WHITE}
             />
           </Pressable>
           <Pressable onPress={() => router.push(`/post/${post.id}`)} hitSlop={6}>
-            <Image source={ICONS.comment} style={styles.actionIcon} />
+            <Ionicons name="chatbubble-outline" size={ICON_SIZE} color={ICON_WHITE} />
           </Pressable>
           <Pressable onPress={() => router.push('/(tabs)/messages')} hitSlop={6}>
-            <Image source={ICONS.share} style={styles.actionIcon} />
+            <Ionicons name="paper-plane-outline" size={ICON_SIZE} color={ICON_WHITE} />
           </Pressable>
         </View>
         <Pressable onPress={() => setSaved((s) => !s)} hitSlop={6}>
-          <Image source={ICONS.save} style={styles.actionIcon} />
+          <Ionicons
+            name={saved ? 'bookmark' : 'bookmark-outline'}
+            size={ICON_SIZE}
+            color={ICON_WHITE}
+          />
         </Pressable>
       </View>
       <Text style={styles.likes}>{formatCount(likeCount)} beğeni</Text>
@@ -171,8 +172,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     top: '40%',
   },
-  bigHeartIcon: { width: 80, height: 80 },
-  actions: {    flexDirection: 'row',
+  actions: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
@@ -184,8 +185,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  actionIcon: { width: 26, height: 26 },
-  likes: {    color: colors.text,
+  likes: {
+    color: colors.text,
     fontWeight: '700',
     fontSize: 14,
     paddingHorizontal: spacing.md,

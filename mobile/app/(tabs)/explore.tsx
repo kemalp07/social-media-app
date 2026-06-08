@@ -1,65 +1,93 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Dimensions,
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar } from '@/components/Avatar';
 import { colors, spacing } from '@/constants/colors';
+import { API_URL } from '@/lib/config';
 import * as api from '@/lib/api';
-import type { FakeUser } from '@/lib/types';
+
+type ExploreItem = { id: string; image_url: string; caption?: string };
+
+const COLS = 3;
+const GAP = 2;
+const TILE = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
+
+function resolveImageUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
 
 export default function ExploreScreen() {
   const router = useRouter();
-  const [characters, setCharacters] = useState<FakeUser[]>([]);
+  const insets = useSafeAreaInsets();
+  const [posts, setPosts] = useState<ExploreItem[]>([]);
 
   useEffect(() => {
-    api.getTier1Characters().then(setCharacters).catch(() => setCharacters([]));
+    api.getExplorePosts().then(setPosts).catch(() => setPosts([]));
   }, []);
 
   return (
-    <FlatList
-      data={characters}
-      keyExtractor={(item) => item.id}
-      style={styles.screen}
-      contentContainerStyle={styles.list}
-      ListHeaderComponent={
-        <Text style={styles.header}>Keşfet — Tier 1 Karakterler</Text>
-      }
-      renderItem={({ item }) => (
-        <Pressable
-          style={styles.card}
-          onPress={() => router.push('/characters')}
-        >
-          <Avatar uri={item.avatar_url} name={item.display_name} size={48} />
-          <View style={styles.info}>
-            <Text style={styles.name}>{item.display_name} {item.is_verified ? '✓' : ''}</Text>
-            <Text style={styles.username}>@{item.username}</Text>
-            <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text>
-          </View>
-          <Text style={styles.followers}>
-            {(item.follower_count ?? 0).toLocaleString('tr-TR')}
-          </Text>
-        </Pressable>
-      )}
-    />
+    <View style={styles.screen}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <Text style={styles.title}>Keşfet</Text>
+      </View>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id}
+        numColumns={COLS}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.grid}
+        ListEmptyComponent={
+          <Text style={styles.empty}>Keşfet içeriği yükleniyor...</Text>
+        }
+        renderItem={({ item }) => (
+          <Pressable
+            style={styles.tile}
+            onPress={() => router.push('/characters')}
+          >
+            {item.image_url ? (
+              <Image
+                source={{ uri: resolveImageUrl(item.image_url) }}
+                style={styles.tileImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.tilePlaceholder} />
+            )}
+          </Pressable>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: spacing.md },
-  header: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: spacing.md },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
+  header: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  info: { flex: 1 },
-  name: { color: colors.text, fontWeight: '700' },
-  username: { color: colors.textMuted, fontSize: 13 },
-  bio: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  followers: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+  title: { color: colors.text, fontSize: 22, fontWeight: '700' },
+  grid: { paddingTop: GAP },
+  row: { gap: GAP, marginBottom: GAP },
+  tile: {
+    width: TILE,
+    height: TILE,
+    backgroundColor: colors.surface,
+  },
+  tileImage: { width: '100%', height: '100%' },
+  tilePlaceholder: { flex: 1, backgroundColor: colors.surface },
+  empty: { color: colors.textMuted, textAlign: 'center', padding: spacing.xl },
 });

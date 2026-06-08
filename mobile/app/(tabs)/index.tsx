@@ -198,19 +198,34 @@ function CreateMenuModal({
   onPost: () => void;
   onStory: () => void;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.modalSheet}>
+        <View style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Oluştur</Text>
           <Pressable style={styles.modalOption} onPress={onPost}>
-            <Ionicons name="images-outline" size={22} color={colors.text} />
-            <Text style={styles.modalOptionText}>Gönderi Paylaş</Text>
+            <View style={styles.modalIconWrap}>
+              <Ionicons name="images" size={24} color={colors.primary} />
+            </View>
+            <View style={styles.modalOptionBody}>
+              <Text style={styles.modalOptionText}>Gönderi Paylaş</Text>
+              <Text style={styles.modalOptionSub}>Fotoğraf veya video paylaş</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </Pressable>
-          <View style={styles.modalDivider} />
           <Pressable style={styles.modalOption} onPress={onStory}>
-            <Ionicons name="add-circle-outline" size={22} color={colors.text} />
-            <Text style={styles.modalOptionText}>Hikaye Ekle</Text>
+            <View style={[styles.modalIconWrap, styles.modalIconWrapStory]}>
+              <Ionicons name="add-circle" size={24} color={colors.secondary} />
+            </View>
+            <View style={styles.modalOptionBody}>
+              <Text style={styles.modalOptionText}>Hikaye Ekle</Text>
+              <Text style={styles.modalOptionSub}>24 saatlik hikaye oluştur</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </Pressable>
           <Pressable style={styles.modalCancel} onPress={onClose}>
             <Text style={styles.modalCancelText}>İptal</Text>
@@ -281,25 +296,55 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
     paddingHorizontal: spacing.md,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+    borderRadius: 12,
   },
+  modalIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(55, 138, 221, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalIconWrapStory: {
+    backgroundColor: 'rgba(29, 158, 117, 0.15)',
+  },
+  modalOptionBody: { flex: 1 },
   modalOptionText: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  modalDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  modalOptionSub: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
   modalCancel: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
   modalCancelText: { color: colors.textMuted, fontSize: 16, fontWeight: '600' },
 });

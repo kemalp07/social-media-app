@@ -101,6 +101,13 @@ export async function startConversation(userId: string, fakeUserId: string) {
   return data;
 }
 
+export async function getExplorePosts(): Promise<{ id: string; image_url: string; caption?: string }[]> {
+  const { data } = await client.get<{ id: string; image_url: string; caption?: string }[]>(
+    '/fake-users/explore/posts'
+  );
+  return data;
+}
+
 export async function getTier1Characters(): Promise<FakeUser[]> {
   const { data } = await client.get<FakeUser[]>('/fake-users/tier1/list');
   return data;
