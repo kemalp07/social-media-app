@@ -4,7 +4,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  Dimensions,
   Easing,
   Image,
   Keyboard,
@@ -32,10 +31,38 @@ import {
 import type { FakeUser } from '@/lib/types';
 
 const STORY_DURATION = 5000;
-const SLIDE_MS = 250;
+const FADE_MS = 150;
 const QUICK_REACTIONS = ['❤️', '😍', '🔥', '😂'] as const;
 const OWN_VIEWER_COUNT = 247;
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+function getPrefetchUrls(
+  bundles: StoryBundle[],
+  bundleIndex: number,
+  slideIndex: number
+): string[] {
+  const urls = new Set<string>();
+  const bundle = bundles[bundleIndex];
+  if (!bundle) return [];
+
+  const current = bundle.slides[slideIndex]?.image_url;
+  if (current) urls.add(current);
+
+  if (slideIndex < bundle.slides.length - 1) {
+    urls.add(bundle.slides[slideIndex + 1].image_url);
+  } else if (bundleIndex < bundles.length - 1) {
+    urls.add(bundles[bundleIndex + 1].slides[0]?.image_url);
+  }
+
+  if (slideIndex > 0) {
+    urls.add(bundle.slides[slideIndex - 1].image_url);
+  } else if (bundleIndex > 0) {
+    const prevBundle = bundles[bundleIndex - 1];
+    const lastSlide = prevBundle.slides[prevBundle.slides.length - 1];
+    if (lastSlide) urls.add(lastSlide.image_url);
+  }
+
+  return [...urls].filter(Boolean);
+}
 
 function ProgressBars({
   total,
@@ -142,11 +169,14 @@ export default function StoryViewerScreen() {
   const [floatingEmoji, setFloatingEmoji] = useState<string | null>(null);
   const [floatingKey, setFloatingKey] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const timerRef = useRef<Animated.CompositeAnimation | null>(null);
   const pausedAtRef = useRef(0);
+  const pendingFadeInRef = useRef(false);
+  const isTransitioningRef = useRef(false);
 
   const paused = holdPaused || keyboardOpen || viewersOpen;
 
@@ -167,6 +197,44 @@ export default function StoryViewerScreen() {
   const bundle = bundles[bundleIndex];
   const slide = bundle?.slides[slideIndex];
 
+  const fadeIn = useCallback(() => {
+    pendingFadeInRef.current = false;
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: FADE_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      isTransitioningRef.current = false;
+    });
+  }, [fadeAnim]);
+
+  const handleImageLoad = useCallback(() => {
+    setImageLoaded(true);
+    if (pendingFadeInRef.current) {
+      fadeIn();
+    }
+  }, [fadeIn]);
+
+  useEffect(() => {
+    if (!slide?.image_url) return;
+    setImageLoaded(false);
+    pendingFadeInRef.current = true;
+    fadeAnim.setValue(0);
+
+    getPrefetchUrls(bundles, bundleIndex, slideIndex).forEach((url) => {
+      void Image.prefetch(url).catch(() => undefined);
+    });
+
+    const fallback = setTimeout(() => {
+      if (pendingFadeInRef.current) {
+        fadeIn();
+      }
+    }, 400);
+
+    return () => clearTimeout(fallback);
+  }, [slide?.image_url, bundleIndex, slideIndex, bundles, fadeAnim, fadeIn]);
+
   const closeViewer = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
@@ -175,40 +243,33 @@ export default function StoryViewerScreen() {
     }
   }, [router]);
 
-  const animateSlide = useCallback(
-    (direction: 'left' | 'right', onComplete: () => void) => {
-      const out = direction === 'left' ? -SCREEN_WIDTH : SCREEN_WIDTH;
-      const enterFrom = direction === 'left' ? SCREEN_WIDTH : -SCREEN_WIDTH;
+  const fadeTransition = useCallback(
+    (onSwap: () => void) => {
+      if (isTransitioningRef.current) return;
+      isTransitioningRef.current = true;
 
-      Animated.timing(slideAnim, {
-        toValue: out,
-        duration: SLIDE_MS,
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: FADE_MS,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start(() => {
-        onComplete();
-        slideAnim.setValue(enterFrom);
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: SLIDE_MS,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }).start();
+        onSwap();
       });
     },
-    [slideAnim]
+    [fadeAnim]
   );
 
   const goNext = useCallback(() => {
     if (!bundle) return;
 
     if (slideIndex < bundle.slides.length - 1) {
-      setSlideIndex((i) => i + 1);
+      fadeTransition(() => setSlideIndex((i) => i + 1));
       return;
     }
 
     if (bundleIndex < bundles.length - 1) {
-      animateSlide('left', () => {
+      fadeTransition(() => {
         setBundleIndex((i) => i + 1);
         setSlideIndex(0);
       });
@@ -216,22 +277,22 @@ export default function StoryViewerScreen() {
     }
 
     closeViewer();
-  }, [animateSlide, bundle, bundleIndex, bundles.length, closeViewer, slideIndex]);
+  }, [fadeTransition, bundle, bundleIndex, bundles.length, closeViewer, slideIndex]);
 
   const goPrev = useCallback(() => {
     if (slideIndex > 0) {
-      setSlideIndex((i) => i - 1);
+      fadeTransition(() => setSlideIndex((i) => i - 1));
       return;
     }
 
     if (bundleIndex > 0) {
-      animateSlide('right', () => {
+      fadeTransition(() => {
         const prevIndex = bundleIndex - 1;
         setBundleIndex(prevIndex);
         setSlideIndex(Math.max(bundles[prevIndex].slides.length - 1, 0));
       });
     }
-  }, [animateSlide, bundleIndex, bundles, slideIndex]);
+  }, [fadeTransition, bundleIndex, bundles, slideIndex]);
 
   const startProgress = useCallback(
     (fromValue = 0) => {
@@ -353,8 +414,13 @@ export default function StoryViewerScreen() {
     >
       <StatusBar hidden />
 
-      <Animated.View style={[styles.slideWrap, { transform: [{ translateX: slideAnim }] }]}>
-        <Image source={{ uri: slide.image_url }} style={styles.storyImage} resizeMode="cover" />
+      <Animated.View style={[styles.slideWrap, { opacity: fadeAnim }]}>
+        <Image
+          source={{ uri: slide.image_url }}
+          style={styles.storyImage}
+          resizeMode="cover"
+          onLoad={handleImageLoad}
+        />
 
         <Pressable
           style={styles.tapLeft}

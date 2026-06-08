@@ -50,7 +50,7 @@ function TabBarIcon({
   if (routeName === 'profile') {
     return (
       <View style={[styles.profileTab, focused && styles.profileTabFocused]}>
-        <Avatar uri={user?.avatar_url} name={user?.display_name} size={24} />
+        <Avatar key={user?.id} uri={user?.avatar_url} name={user?.username} size={24} />
       </View>
     );
   }

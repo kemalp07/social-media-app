@@ -30,7 +30,7 @@ async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
             username=username,
             display_name=data.display_name.strip(),
             bio=(data.bio or "").strip(),
-            avatar_url=f"https://api.dicebear.com/7.x/avataaars/svg?seed={username}",
+            avatar_url=f"https://api.dicebear.com/7.x/avataaars/png?seed={username}",
         )
         db.add(user)
         await db.flush()

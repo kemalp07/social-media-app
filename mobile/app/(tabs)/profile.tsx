@@ -87,11 +87,11 @@ export default function ProfileScreen() {
           <View style={styles.profileSection}>
             <View style={styles.topRow}>
               <Pressable onPress={pickAvatar} style={styles.avatarWrap}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-                ) : (
-                  <Avatar uri={user.avatar_url} name={user.display_name} size={86} />
-                )}
+                <Avatar
+                  uri={avatarUri ?? user.avatar_url}
+                  name={user.username}
+                  size={90}
+                />
               </Pressable>
 
               <View style={styles.statsRow}>
@@ -149,7 +149,6 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   avatarWrap: { flexShrink: 0 },
-  avatarImage: { width: 86, height: 86, borderRadius: 43 },
   statsRow: {
     flex: 1,
     flexDirection: 'row',
