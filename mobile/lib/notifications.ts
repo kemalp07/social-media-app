@@ -10,15 +10,17 @@ export function enrichFollowNotification(content: string, totalCount?: number): 
     return content;
   }
 
-  const match = content.match(/(\d+)\s+kişi daha/);
-  const prefix = content.split(' ve ')[0]?.trim();
-
-  if (prefix && prefix.includes(',')) {
-    const names = prefix.split(',').map((n) => n.trim().replace(/^@/, ''));
-    const tier3Count = match ? Number(match[1]) : 0;
-    return buildFollowerNotification(names.slice(0, 1), names.slice(1, 2), tier3Count);
+  // Tier 1 / Tier 2 bildirimleri backend'den @username ile gelir
+  if (content.startsWith('@')) {
+    return content;
   }
 
+  const singleMatch = content.match(/^(\d+)\s+kişi seni takip etti$/);
+  if (singleMatch) {
+    return buildFollowNotification(Number(singleMatch[1]));
+  }
+
+  const match = content.match(/(\d+)\s+kişi daha/);
   if (match) {
     const total = totalCount ?? Number(match[1]) + 1;
     return buildFollowNotification(total);

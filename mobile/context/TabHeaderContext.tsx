@@ -7,6 +7,8 @@ type TabHeaderActions = {
 type TabHeaderContextValue = {
   unreadCount: number;
   setUnreadCount: (count: number) => void;
+  dmUnreadCount: number;
+  setDmUnreadCount: (count: number) => void;
   createMenuVisible: boolean;
   openCreateMenu: () => void;
   closeCreateMenu: () => void;
@@ -23,6 +25,7 @@ const TabHeaderContext = createContext<TabHeaderContextValue | null>(null);
 
 export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
+  const [dmUnreadCount, setDmUnreadCount] = useState(0);
   const [createMenuVisible, setCreateMenuVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [exploreSearchOpen, setExploreSearchOpen] = useState(false);
@@ -48,6 +51,8 @@ export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
     () => ({
       unreadCount,
       setUnreadCount,
+      dmUnreadCount,
+      setDmUnreadCount,
       createMenuVisible,
       openCreateMenu,
       closeCreateMenu,
@@ -61,6 +66,7 @@ export function TabHeaderProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       unreadCount,
+      dmUnreadCount,
       createMenuVisible,
       settingsVisible,
       exploreSearchOpen,

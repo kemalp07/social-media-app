@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
+import { CountBadge } from '@/components/CountBadge';
 import { colors } from '@/constants/colors';
+import { timeAgo } from '@/lib/timeAgo';
 import type { Conversation } from '@/lib/types';
 
 interface Props {
@@ -27,13 +29,9 @@ export function DMItem({ item, onPress }: Props) {
       </View>
       <View style={styles.right}>
         <Text style={styles.time}>
-          {new Date(item.last_message_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+          {timeAgo(item.last_message_at)}
         </Text>
-        {unread > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unread}</Text>
-          </View>
-        )}
+        {unread > 0 && <CountBadge count={unread} />}
       </View>
     </Pressable>
   );
@@ -55,14 +53,4 @@ const styles = StyleSheet.create({
   sponsor: { color: colors.sponsor },
   right: { alignItems: 'flex-end', gap: 6 },
   time: { color: colors.textMuted, fontSize: 11 },
-  badge: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });

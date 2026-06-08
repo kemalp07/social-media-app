@@ -1,4 +1,5 @@
 """Organik takipçi büyümesi, milestone ve günlük görevler."""
+import logging
 import random
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -7,8 +8,11 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models import FakePost, FakeUser, Follow, FollowerGrowthLog, Milestone, Post, User
 from app.services.notification_service import create_notification, notify_follower_growth, send_push
+
+logger = logging.getLogger(__name__)
 
 FOLLOWER_MILESTONES = [
     (100, "followers_100", "İlk yüzünü kırdın! 🎉 Yolculuk başlıyor..."),
@@ -44,6 +48,11 @@ STOCK_PHOTOS = [
 STOCK_CAPTIONS = ["Bugün harika bir gün ☀️", "Kahve molası ☕", "Yeni bir macera 🌍", "Antrenman bitti 💪", "Akşam manzarası 🌅", "Hafta sonu modu 😎"]
 
 
+def _utc_now() -> datetime:
+    """Naive UTC — Neon TIMESTAMP WITHOUT TIME ZONE kolonlarıyla uyumlu."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 def get_user_level(follower_count: int) -> str:
     for threshold, level in LEVEL_THRESHOLDS:
         if follower_count >= threshold:
@@ -75,7 +84,11 @@ def _split_growth_tiers(amount: int) -> tuple[int, int, int]:
 
 
 async def calculate_growth_amount(session: AsyncSession, user: User) -> int:
-    now = datetime.now(timezone.utc)
+    """Saniyelik tick: 0 veya 1 takipçi (drip growth)."""
+    now = _utc_now()
+
+    if settings.environment == "development":
+        return 1
 
     recent_post = await session.execute(
         select(Post.id)
@@ -83,7 +96,7 @@ async def calculate_growth_amount(session: AsyncSession, user: User) -> int:
         .limit(1)
     )
     if not recent_post.scalar_one_or_none():
-        return random.randint(1, 3)
+        return 1 if random.random() < (2 / 60) else 0
 
     viral_result = await session.execute(
         select(Post.id)
@@ -95,15 +108,17 @@ async def calculate_growth_amount(session: AsyncSession, user: User) -> int:
         .limit(1)
     )
     if viral_result.scalar_one_or_none():
-        return random.randint(50, 200)
+        return 1
 
-    return random.randint(5, 15)
+    return 1 if random.random() < (10 / 60) else 0
 
 
 async def apply_follower_growth(
     session: AsyncSession,
     user_id: UUID,
     amount: int,
+    *,
+    push: bool = True,
 ) -> dict:
     if amount <= 0:
         return {"tier1": 0, "tier2": 0, "tier3": 0, "total": 0}
@@ -167,6 +182,7 @@ async def apply_follower_growth(
         tier2_users,
         tier3_count,
         total=amount,
+        push=push,
     )
     await check_milestones(session, user_id, follower_count=user.follower_count)
 
@@ -179,14 +195,16 @@ async def apply_follower_growth(
 
 
 async def passive_growth(session: AsyncSession) -> int:
-    now = datetime.now(timezone.utc)
+    now = _utc_now()
     result = await session.execute(select(User))
     users = result.scalars().all()
     total = 0
 
     for user in users:
         amount = await calculate_growth_amount(session, user)
-        await apply_follower_growth(session, user.id, amount)
+        if amount <= 0:
+            continue
+        await apply_follower_growth(session, user.id, amount, push=False)
         user.last_active = now
         total += amount
 

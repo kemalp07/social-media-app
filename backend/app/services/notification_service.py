@@ -89,31 +89,33 @@ async def notify_story_reaction(
     )
 
 
+def _fake_user_username(fu) -> str | None:
+    return getattr(fu, "username", None) or (fu.get("username") if isinstance(fu, dict) else None)
+
+
+def _fake_user_id(fu) -> UUID | None:
+    raw = getattr(fu, "id", None) or (fu.get("id") if isinstance(fu, dict) else None)
+    return UUID(str(raw)) if raw else None
+
+
 def build_follow_notification_content(
     tier1_users: list,
     tier2_users: list,
-    tier3_count: int,
     total: int,
 ) -> str:
-    names: list[str] = []
+    if total <= 0:
+        return "Yeni takipçilerin var"
+
     for fu in tier1_users + tier2_users:
-        username = getattr(fu, "username", None) or (fu.get("username") if isinstance(fu, dict) else None)
-        if username and username not in names:
-            names.append(username)
-        if len(names) >= 2:
-            break
+        username = _fake_user_username(fu)
+        if username:
+            if total == 1:
+                return f"@{username} seni takip etti"
+            return f"@{username} ve {total - 1} kişi daha seni takip etti"
 
-    if not names:
-        if total <= 0:
-            return "Yeni takipçilerin var"
-        return f"{total} kişi seni takip etti"
-
-    others = max(0, total - len(names))
-    if others <= 0:
-        return f"{', '.join(names)} seni takip etti"
-    if len(names) == 1:
-        return f"{names[0]} ve {others} kişi daha seni takip etti"
-    return f"{names[0]}, {names[1]} ve {others} kişi daha seni takip etti"
+    if total == 1:
+        return "1 kişi seni takip etti"
+    return f"ve {total - 1} kişi daha seni takip etti"
 
 
 async def notify_follower_growth(
@@ -123,16 +125,18 @@ async def notify_follower_growth(
     tier2_users: list,
     tier3_count: int,
     total: int,
+    *,
+    push: bool = True,
 ) -> None:
     if total <= 0:
         return
 
-    content = build_follow_notification_content(tier1_users, tier2_users, tier3_count, total)
+    content = build_follow_notification_content(tier1_users, tier2_users, total)
     from_fake_user_id = None
     if tier1_users:
-        from_fake_user_id = tier1_users[0].id
+        from_fake_user_id = _fake_user_id(tier1_users[0])
     elif tier2_users:
-        from_fake_user_id = tier2_users[0].id
+        from_fake_user_id = _fake_user_id(tier2_users[0])
 
     await create_notification(
         session,
@@ -141,7 +145,8 @@ async def notify_follower_growth(
         content,
         from_fake_user_id=from_fake_user_id,
     )
-    await send_push(session, user_id, "Yeni takipçiler", content)
+    if push:
+        await send_push(session, user_id, "Yeni takipçiler", content)
 
 
 async def send_daily_digest(session: AsyncSession, user_id: UUID | str) -> None:

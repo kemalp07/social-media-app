@@ -1,7 +1,8 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
   Image,
@@ -38,10 +39,16 @@ function ProfileStat({ value, label }: { value: string | number; label: string }
 }
 
 export default function ProfileScreen() {
-  const { user, logout, updateLocalAvatar } = useUser();
+  const { user, logout, updateLocalAvatar, refreshUser } = useUser();
   const router = useRouter();
   const { settingsVisible, closeSettings } = useTabHeader();
   const [posts, setPosts] = useState<Post[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshUser();
+    }, [refreshUser])
+  );
 
   useEffect(() => {
     if (user) {
@@ -65,7 +72,7 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     await logout();
-    router.replace('/login');
+    router.replace('/onboarding');
   };
 
   return (

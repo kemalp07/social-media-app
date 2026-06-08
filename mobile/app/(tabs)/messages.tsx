@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { DMItem } from '@/components/DMItem';
+import { useTabHeader } from '@/context/TabHeaderContext';
 import { useUser } from '@/context/UserContext';
 import { useMessages } from '@/hooks/useMessages';
 import { colors, spacing } from '@/constants/colors';
@@ -19,7 +20,8 @@ import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
 export default function MessagesScreen() {
   const { user } = useUser();
   const router = useRouter();
-  const { conversations, loading, setLoading, load } = useMessages(user?.id);
+  const { setDmUnreadCount } = useTabHeader();
+  const { conversations, unreadTotal, loading, setLoading, load } = useMessages(user?.id);
 
   useFocusEffect(
     useCallback(() => {
@@ -29,6 +31,18 @@ export default function MessagesScreen() {
         .finally(() => setLoading(false));
     }, [load, setLoading])
   );
+
+  useEffect(() => {
+    setDmUnreadCount(unreadTotal);
+  }, [unreadTotal, setDmUnreadCount]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const interval = setInterval(() => {
+      void load();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id, load]);
 
   if (loading) {
     return (

@@ -55,6 +55,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     refreshUser().finally(() => setLoading(false));
   }, [refreshUser]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void refreshUser();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [refreshUser]);
+
   const register = useCallback(async (username: string, displayName: string) => {
     const data = await api.createUser(username, displayName);
     await setStoredUserId(data.id);

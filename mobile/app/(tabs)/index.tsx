@@ -61,6 +61,15 @@ export default function FeedScreen() {
 
   useEffect(() => {
     if (!user?.id) return;
+    void loadUnreadCount();
+    const interval = setInterval(() => {
+      void loadUnreadCount();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [user?.id, loadUnreadCount]);
+
+  useEffect(() => {
+    if (!user?.id) return;
     setLoading(true);
     load()
       .catch(() => undefined)

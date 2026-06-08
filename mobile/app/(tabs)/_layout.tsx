@@ -4,6 +4,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
+import { CountBadge } from '@/components/CountBadge';
 import { CreateMenuModal } from '@/components/CreateMenuModal';
 import { VibeLogo } from '@/components/VibeLogo';
 import { TabHeaderProvider, useTabHeader } from '@/context/TabHeaderContext';
@@ -46,6 +47,7 @@ function TabBarIcon({
   focused: boolean;
 }) {
   const { user } = useUser();
+  const { dmUnreadCount } = useTabHeader();
 
   if (routeName === 'profile') {
     return (
@@ -57,6 +59,21 @@ function TabBarIcon({
 
   const icons = TAB_ICON_MAP[routeName];
   if (!icons) return null;
+
+  if (routeName === 'messages') {
+    return (
+      <View style={styles.tabIconWrap}>
+        <Ionicons
+          name={focused ? icons.active : icons.inactive}
+          size={24}
+          color={focused ? ACTIVE_COLOR : INACTIVE_COLOR}
+        />
+        <View style={styles.tabBadgeAnchor}>
+          <CountBadge count={dmUnreadCount} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <Ionicons
@@ -99,9 +116,6 @@ function TabHeaderRight({ routeName }: { routeName: string }) {
   const { unreadCount, toggleExploreSearch, openSettings } = useTabHeader();
 
   if (routeName === 'index') {
-    const hasUnread = unreadCount > 0;
-    const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount);
-
     return (
       <Pressable
         onPress={() => router.push('/(tabs)/notifications')}
@@ -110,15 +124,13 @@ function TabHeaderRight({ routeName }: { routeName: string }) {
       >
         <View style={styles.heartWrap}>
           <Ionicons
-            name={hasUnread ? 'heart' : 'heart-outline'}
+            name={unreadCount > 0 ? 'heart' : 'heart-outline'}
             size={26}
-            color={hasUnread ? HEART_ACTIVE : '#ffffff'}
+            color={unreadCount > 0 ? HEART_ACTIVE : '#ffffff'}
           />
-          {hasUnread && (
-            <View style={styles.heartBadge}>
-              <Text style={styles.heartBadgeText}>{badgeLabel}</Text>
-            </View>
-          )}
+          <View style={styles.heartBadgeAnchor}>
+            <CountBadge count={unreadCount} />
+          </View>
         </View>
       </Pressable>
     );
@@ -252,24 +264,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heartBadge: {
+  heartBadgeAnchor: {
     position: 'absolute',
     right: -4,
     top: -4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: HEART_ACTIVE,
-    borderWidth: 1.5,
-    borderColor: '#000000',
+  },
+  tabIconWrap: {
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
   },
-  heartBadgeText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '800',
-    lineHeight: 11,
+  tabBadgeAnchor: {
+    position: 'absolute',
+    right: -6,
+    top: -4,
   },
 });

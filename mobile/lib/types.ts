@@ -64,6 +64,7 @@ export interface Conversation {
   started_by: string;
   fake_username?: string;
   fake_avatar_url?: string;
+  unread_count?: number;
 }
 
 export interface Message {

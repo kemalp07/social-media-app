@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/colors';
 import { enrichFollowNotification } from '@/lib/notifications';
+import { timeAgo } from '@/lib/timeAgo';
 import type { Notification } from '@/lib/types';
 
 const TYPE_CONFIG: Record<string, { emoji: string; bg?: string }> = {
@@ -51,7 +52,7 @@ export function NotificationItem({ item, onPress }: Props) {
           {displayContent}
         </Text>
         <Text style={styles.time}>
-          {new Date(item.created_at).toLocaleString('tr-TR')}
+          {timeAgo(item.created_at)}
         </Text>
       </View>
     </Pressable>

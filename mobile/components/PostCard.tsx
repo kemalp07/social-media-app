@@ -12,6 +12,7 @@ import {
 
 import { Avatar } from '@/components/Avatar';
 import { colors, spacing } from '@/constants/colors';
+import { timeAgo } from '@/lib/timeAgo';
 import type { Post } from '@/lib/types';
 
 const ICON_SIZE = 26;
@@ -26,15 +27,6 @@ function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
-}
-
-function timeAgo(date: string): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} dk önce`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} sa önce`;
-  return `${Math.floor(hours / 24)} gün önce`;
 }
 
 export function PostCard({ post }: Props) {

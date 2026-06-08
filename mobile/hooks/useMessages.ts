@@ -17,7 +17,7 @@ export function useMessages(userId: string | undefined) {
   }, [userId]);
 
   const unreadTotal = conversations.reduce(
-    (sum, c) => sum + ((c as Conversation & { unread_count?: number }).unread_count ?? 0),
+    (sum, c) => sum + (c.unread_count ?? 0),
     0
   );
 

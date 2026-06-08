@@ -28,6 +28,7 @@ import {
   findBundleIndex,
   type StoryBundle,
 } from '@/lib/stories';
+import { timeAgo } from '@/lib/timeAgo';
 import type { FakeUser } from '@/lib/types';
 
 const STORY_DURATION = 5000;
@@ -451,7 +452,7 @@ export default function StoryViewerScreen() {
                 <Text style={styles.headerName} numberOfLines={1}>
                   {bundle.displayName}
                 </Text>
-                <Text style={styles.headerTime}>az önce</Text>
+                <Text style={styles.headerTime}>{timeAgo(slide.created_at)}</Text>
               </View>
             </View>
             <Pressable onPress={closeViewer} hitSlop={12} style={styles.closeBtn}>

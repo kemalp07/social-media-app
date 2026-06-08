@@ -218,6 +218,14 @@ export function buildFollowerNotification(
   const total = allNames.length + tier3Count;
 
   if (allNames.length === 0) {
+    if (total === 1) {
+      const [u] = getRandomLocalUsers(1);
+      return `@${u.username} seni takip etti`;
+    }
+    if (total === 2) {
+      const locals = getRandomLocalUsers(2);
+      return `@${locals[0].username}, @${locals[1].username} seni takip etti`;
+    }
     const locals = getRandomLocalUsers(2);
     const names = locals.map((u) => `@${u.username}`);
     return `${names.join(', ')} ve ${total - 2} kişi daha seni takip etti`;
