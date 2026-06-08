@@ -36,8 +36,12 @@ export default function ChatScreen() {
 
   const loadMessages = useCallback(async () => {
     if (!user || !id) return;
-    const data = await api.getMessages(id, user.id);
-    setMessages(data);
+    try {
+      const data = await api.getMessages(id, user.id);
+      setMessages(data);
+    } catch {
+      setMessages([]);
+    }
   }, [user, id]);
 
   useEffect(() => {

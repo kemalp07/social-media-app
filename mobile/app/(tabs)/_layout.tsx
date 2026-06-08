@@ -1,13 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
-import { Tabs } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
+import { VibeLogo } from '@/components/VibeLogo';
+import { TabHeaderProvider, useTabHeader } from '@/context/TabHeaderContext';
 import { useUser } from '@/context/UserContext';
 
 const ACTIVE_COLOR = '#378ADD';
 const INACTIVE_COLOR = '#ffffff';
+const HEART_ACTIVE = '#ff3040';
+
+const TAB_TITLES: Record<string, string> = {
+  explore: 'Keşfet',
+  messages: 'Mesajlar',
+  profile: 'Profil',
+};
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -57,32 +66,112 @@ function TabBarIcon({
   );
 }
 
-export default function TabLayout() {
+function TabHeaderLeft({ routeName }: { routeName: string }) {
+  const { openCreateMenu } = useTabHeader();
+
+  if (routeName !== 'index') return null;
+
+  return (
+    <Pressable onPress={openCreateMenu} hitSlop={8} style={styles.headerBtn}>
+      <Ionicons name="add-outline" size={28} color="#ffffff" />
+    </Pressable>
+  );
+}
+
+function TabHeaderTitle({ routeName }: { routeName: string }) {
+  const { scrollToTop } = useTabHeader();
+
+  if (routeName === 'index') {
+    return (
+      <Pressable onPress={scrollToTop} hitSlop={8}>
+        <VibeLogo size="sm" />
+      </Pressable>
+    );
+  }
+
+  const title = TAB_TITLES[routeName];
+  if (!title) return null;
+
+  return <Text style={styles.headerTitleText}>{title}</Text>;
+}
+
+function TabHeaderRight({ routeName }: { routeName: string }) {
+  const router = useRouter();
+  const { unreadCount } = useTabHeader();
+
+  if (routeName !== 'index') return null;
+
+  const hasUnread = unreadCount > 0;
+  const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount);
+
+  return (
+    <Pressable
+      onPress={() => router.push('/(tabs)/notifications')}
+      hitSlop={8}
+      style={styles.headerBtn}
+    >
+      <View style={styles.heartWrap}>
+        <Ionicons
+          name={hasUnread ? 'heart' : 'heart-outline'}
+          size={26}
+          color={hasUnread ? HEART_ACTIVE : '#ffffff'}
+        />
+        {hasUnread && (
+          <View style={styles.heartBadge}>
+            <Text style={styles.heartBadgeText}>{badgeLabel}</Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+function TabsLayout() {
   return (
     <Tabs
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarShowLabel: false,
-        sceneStyle: { backgroundColor: '#000000' },
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: ACTIVE_COLOR,
-        tabBarInactiveTintColor: INACTIVE_COLOR,
-        tabBarPressColor: 'transparent',
-        tabBarPressOpacity: 1,
-        tabBarButton: (props) => <TabBarButton {...props} />,
-        tabBarIcon: ({ focused }) => (
-          <TabBarIcon routeName={route.name} focused={focused} />
-        ),
-      })}
+      screenOptions={({ route }) => {
+        const showHeader = ['index', 'explore', 'messages', 'profile'].includes(route.name);
+
+        return {
+          headerShown: showHeader,
+          headerStyle: { backgroundColor: '#000000' },
+          headerTintColor: '#ffffff',
+          headerTitleStyle: { color: '#ffffff', fontWeight: '700' },
+          headerShadowVisible: false,
+          headerTitleAlign: 'center',
+          headerLeft: () => <TabHeaderLeft routeName={route.name} />,
+          headerTitle: () => <TabHeaderTitle routeName={route.name} />,
+          headerRight: () => <TabHeaderRight routeName={route.name} />,
+          tabBarShowLabel: false,
+          sceneStyle: { backgroundColor: '#000000' },
+          tabBarStyle: styles.tabBar,
+          tabBarActiveTintColor: ACTIVE_COLOR,
+          tabBarInactiveTintColor: INACTIVE_COLOR,
+          tabBarPressColor: 'transparent',
+          tabBarPressOpacity: 1,
+          tabBarButton: (props) => <TabBarButton {...props} />,
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon routeName={route.name} focused={focused} />
+          ),
+        };
+      }}
     >
       <Tabs.Screen name="index" options={{ title: 'Akış' }} />
       <Tabs.Screen name="explore" options={{ title: 'Keşfet' }} />
       <Tabs.Screen name="messages" options={{ title: 'Mesajlar' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
-      <Tabs.Screen name="create" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="create" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="notifications" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="search" options={{ href: null, headerShown: false }} />
     </Tabs>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <TabHeaderProvider>
+      <TabsLayout />
+    </TabHeaderProvider>
   );
 }
 
@@ -103,5 +192,33 @@ const styles = StyleSheet.create({
   profileTabFocused: {
     borderWidth: 2,
     borderColor: ACTIVE_COLOR,
+  },
+  headerBtn: { padding: 2 },
+  headerTitleText: { color: '#ffffff', fontSize: 17, fontWeight: '700' },
+  heartWrap: {
+    width: 30,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heartBadge: {
+    position: 'absolute',
+    right: -4,
+    top: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: HEART_ACTIVE,
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  heartBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 11,
   },
 });

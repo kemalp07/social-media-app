@@ -9,7 +9,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/constants/colors';
 import { listScrollProps, TAB_BAR_HEIGHT } from '@/constants/layout';
@@ -30,7 +29,6 @@ function resolveImageUrl(url: string): string {
 
 export default function ExploreScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<ExploreItem[]>([]);
 
   useEffect(() => {
@@ -39,9 +37,6 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Text style={styles.title}>Keşfet</Text>
-      </View>
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -76,14 +71,6 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000000' },
-  header: {
-    backgroundColor: colors.bg,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  title: { color: colors.text, fontSize: 22, fontWeight: '700' },
   list: { flex: 1 },
   grid: { paddingTop: GAP, paddingBottom: TAB_BAR_HEIGHT },
   row: { gap: GAP, marginBottom: GAP },

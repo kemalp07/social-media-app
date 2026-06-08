@@ -9,18 +9,27 @@ export function useNotifications(userId: string | undefined) {
 
   const load = useCallback(async () => {
     if (!userId) return;
-    const [notifs, count] = await Promise.all([
-      api.getNotifications(userId),
-      api.getUnreadCount(userId),
-    ]);
-    setNotifications(notifs);
-    setUnreadCount(count);
+    try {
+      const [notifs, count] = await Promise.all([
+        api.getNotifications(userId),
+        api.getUnreadCount(userId),
+      ]);
+      setNotifications(notifs);
+      setUnreadCount(count);
+    } catch {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
   }, [userId]);
 
   const markRead = useCallback(async () => {
     if (!userId) return;
-    await api.markNotificationsRead(userId);
-    setUnreadCount(0);
+    try {
+      await api.markNotificationsRead(userId);
+      setUnreadCount(0);
+    } catch {
+      // ignore
+    }
   }, [userId]);
 
   return { notifications, unreadCount, loading, setLoading, load, markRead };

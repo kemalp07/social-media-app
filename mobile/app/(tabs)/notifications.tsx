@@ -38,10 +38,12 @@ export default function NotificationsScreen() {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      load().finally(() => {
-        setLoading(false);
-        markRead();
-      });
+      load()
+        .catch(() => undefined)
+        .finally(() => {
+          setLoading(false);
+          markRead().catch(() => undefined);
+        });
     }, [load, markRead, setLoading])
   );
 

@@ -31,8 +31,12 @@ export default function CharactersScreen() {
 
   const startChat = async (fakeUserId: string) => {
     if (!user) return;
-    const conv = await api.startConversation(user.id, fakeUserId);
-    router.replace(`/chat/${conv.id}`);
+    try {
+      const conv = await api.startConversation(user.id, fakeUserId);
+      router.replace(`/chat/${conv.id}`);
+    } catch {
+      // ignore
+    }
   };
 
   if (loading) {

@@ -1,10 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Avatar } from '@/components/Avatar';
 import { colors } from '@/constants/colors';
+import { resolveAvatarUri } from '@/lib/avatar';
 
-const GRADIENT = ['#378ADD', '#1D9E75', '#378ADD'] as const;
+const GRADIENT = ['#378ADD', '#1D9E75'] as const;
 
 interface Props {
   name: string;
@@ -15,11 +15,11 @@ interface Props {
 }
 
 export function StoryRing({ name, avatarUrl, isOwn, hasStory = true, onPress }: Props) {
-  const avatar = <Avatar uri={avatarUrl} name={name} size={56} />;
+  const imageUri = resolveAvatarUri(avatarUrl, name);
 
   const ringContent = (
     <View style={styles.avatarWrap}>
-      {avatar}
+      <Image source={{ uri: imageUri }} style={styles.avatar} />
       {isOwn && <Text style={styles.plus}>+</Text>}
     </View>
   );
@@ -45,6 +45,8 @@ export function StoryRing({ name, avatarUrl, isOwn, hasStory = true, onPress }: 
   );
 }
 
+const AVATAR_SIZE = 56;
+
 const styles = StyleSheet.create({
   container: { alignItems: 'center', width: 76, marginRight: 10 },
   gradientRing: {
@@ -59,13 +61,18 @@ const styles = StyleSheet.create({
   plainRing: {
     padding: 2,
     borderRadius: 32,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 2.5,
+    borderColor: '#378ADD',
   },
   ownRing: {
     borderColor: colors.textMuted,
   },
   avatarWrap: { position: 'relative' },
+  avatar: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+  },
   plus: {
     position: 'absolute',
     bottom: 0,

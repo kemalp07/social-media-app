@@ -11,7 +11,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/Avatar';
 import { StatBox } from '@/components/StatBox';
@@ -32,7 +31,6 @@ function getLevel(count: number): string {
 export default function ProfileScreen() {
   const { user, logout } = useUser();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<Post[]>([]);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
@@ -71,13 +69,6 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Text style={styles.title}>Profil</Text>
-        <Pressable onPress={openSettings} style={styles.settingsBtn} hitSlop={8}>
-          <Ionicons name="settings-outline" size={24} color={colors.text} />
-        </Pressable>
-      </View>
-
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -87,6 +78,12 @@ export default function ProfileScreen() {
         {...listScrollProps}
         ListHeaderComponent={
           <View style={styles.profileSection}>
+            <View style={styles.settingsRow}>
+              <Pressable onPress={openSettings} style={styles.settingsBtn} hitSlop={8}>
+                <Ionicons name="settings-outline" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+
             <View style={styles.profileHeader}>
               <Pressable onPress={pickAvatar} style={styles.avatarWrap}>
                 {avatarUri ? (
@@ -140,21 +137,11 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000000' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.bg,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  title: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  settingsBtn: { padding: spacing.xs },
   list: { flex: 1 },
   listContent: { paddingHorizontal: spacing.lg, paddingBottom: TAB_BAR_HEIGHT },
-  profileSection: { paddingTop: spacing.md },
+  profileSection: { paddingTop: spacing.sm },
+  settingsRow: { alignItems: 'flex-end', marginBottom: spacing.xs },
+  settingsBtn: { padding: spacing.xs },
   profileHeader: { alignItems: 'center', marginBottom: spacing.lg },
   avatarWrap: { position: 'relative' },
   avatarImage: { width: 90, height: 90, borderRadius: 45 },

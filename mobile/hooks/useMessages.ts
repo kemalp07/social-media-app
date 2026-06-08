@@ -8,8 +8,12 @@ export function useMessages(userId: string | undefined) {
 
   const load = useCallback(async () => {
     if (!userId) return;
-    const data = await api.getConversations(userId);
-    setConversations(data);
+    try {
+      const data = await api.getConversations(userId);
+      setConversations(data);
+    } catch {
+      setConversations([]);
+    }
   }, [userId]);
 
   const unreadTotal = conversations.reduce(

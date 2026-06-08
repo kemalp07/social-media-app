@@ -9,14 +9,20 @@ export function useFeed(userId: string | undefined) {
 
   const load = useCallback(async () => {
     if (!userId) return;
-    const data = await api.getFeed(userId);
-    setPosts(data);
+    try {
+      const data = await api.getFeed(userId);
+      setPosts(data);
+    } catch {
+      setPosts([]);
+    }
   }, [userId]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await load();
+    } catch {
+      // load handles errors internally
     } finally {
       setRefreshing(false);
     }
