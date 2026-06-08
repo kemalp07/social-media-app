@@ -1,9 +1,14 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.database import get_supabase
-from app.schemas import ConversationResponse, MessageCreate, MessageResponse
+from app.database import get_db
+from app.models import Conversation, FakeUser, Message
+from app.schemas import MessageCreate
+from app.serializers import conversation_to_dict, message_to_dict
 from app.services.avatar_service import dicebear_url
 from app.services.dm_service import send_user_message
 
@@ -11,81 +16,69 @@ router = APIRouter(prefix="/messages", tags=["messages"])
 
 
 @router.get("/conversations/{user_id}")
-async def list_conversations(user_id: UUID):
-    db = get_supabase()
-    convs = (
-        db.table("conversations")
-        .select("*, fake_users(username, display_name, avatar_seed, avatar_url, tier)")
-        .eq("real_user_id", str(user_id))
-        .order("last_message_at", desc=True)
-        .execute()
+async def list_conversations(user_id: UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Conversation)
+        .options(selectinload(Conversation.fake_user))
+        .where(Conversation.real_user_id == user_id)
+        .order_by(Conversation.last_message_at.desc())
     )
-
-    for c in convs.data or []:
-        bot = c.get("fake_users") or {}
-        c["fake_username"] = bot.get("display_name") or bot.get("username")
-        c["fake_avatar_url"] = bot.get("avatar_url") or dicebear_url(bot.get("avatar_seed", ""))
-
-    return convs.data
+    convs = []
+    for c in result.scalars().all():
+        data = conversation_to_dict(c)
+        if c.fake_user:
+            data["fake_username"] = c.fake_user.display_name or c.fake_user.username
+            data["fake_avatar_url"] = c.fake_user.avatar_url or dicebear_url(c.fake_user.avatar_seed)
+        convs.append(data)
+    return convs
 
 
 @router.get("/conversations/{conversation_id}/messages")
-async def get_messages(conversation_id: UUID, user_id: UUID):
-    db = get_supabase()
-    conv = (
-        db.table("conversations")
-        .select("id")
-        .eq("id", str(conversation_id))
-        .eq("real_user_id", str(user_id))
-        .single()
-        .execute()
+async def get_messages(conversation_id: UUID, user_id: UUID, db: AsyncSession = Depends(get_db)):
+    conv_result = await db.execute(
+        select(Conversation.id)
+        .where(Conversation.id == conversation_id, Conversation.real_user_id == user_id)
     )
-    if not conv.data:
+    if not conv_result.scalar_one_or_none():
         raise HTTPException(404, "Conversation not found")
 
-    messages = (
-        db.table("messages")
-        .select("*")
-        .eq("conversation_id", str(conversation_id))
-        .order("created_at")
-        .execute()
+    msg_result = await db.execute(
+        select(Message).where(Message.conversation_id == conversation_id).order_by(Message.created_at)
     )
-
-    db.table("messages").update({"is_read": True}).eq("conversation_id", str(conversation_id)).eq("sender", "ai").execute()
-    return messages.data
+    await db.execute(
+        update(Message)
+        .where(Message.conversation_id == conversation_id, Message.sender == "ai")
+        .values(is_read=True)
+    )
+    return [message_to_dict(m) for m in msg_result.scalars().all()]
 
 
 @router.post("/conversations/{conversation_id}/send")
-async def send_message(conversation_id: UUID, user_id: UUID, data: MessageCreate):
+async def send_message(conversation_id: UUID, user_id: UUID, data: MessageCreate, db: AsyncSession = Depends(get_db)):
     try:
-        result = await send_user_message(conversation_id, user_id, data.content)
-        return result
+        return await send_user_message(db, conversation_id, user_id, data.content)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
 
 @router.post("/start/{user_id}/{fake_user_id}")
-async def start_conversation(user_id: UUID, fake_user_id: UUID):
-    """User initiates DM with Tier 1 character."""
-    db = get_supabase()
-
-    bot = db.table("fake_users").select("tier").eq("id", str(fake_user_id)).single().execute()
-    if not bot.data or bot.data.get("tier") != 1:
+async def start_conversation(user_id: UUID, fake_user_id: UUID, db: AsyncSession = Depends(get_db)):
+    bot_result = await db.execute(select(FakeUser.tier).where(FakeUser.id == fake_user_id))
+    tier = bot_result.scalar_one_or_none()
+    if tier != 1:
         raise HTTPException(400, "Can only DM Tier 1 characters")
 
-    existing = (
-        db.table("conversations")
-        .select("id")
-        .eq("real_user_id", str(user_id))
-        .eq("fake_user_id", str(fake_user_id))
-        .execute()
+    existing = await db.execute(
+        select(Conversation).where(
+            Conversation.real_user_id == user_id,
+            Conversation.fake_user_id == fake_user_id,
+        )
     )
-    if existing.data:
-        return existing.data[0]
+    conv = existing.scalar_one_or_none()
+    if conv:
+        return {"id": conv.id}
 
-    conv = db.table("conversations").insert({
-        "real_user_id": str(user_id),
-        "fake_user_id": str(fake_user_id),
-        "started_by": "user",
-    }).execute()
-    return conv.data[0]
+    conv = Conversation(real_user_id=user_id, fake_user_id=fake_user_id, started_by="user")
+    db.add(conv)
+    await db.flush()
+    return {"id": conv.id}

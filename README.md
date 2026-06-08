@@ -10,8 +10,8 @@ Kullanıcı gerçek bir kişi; etrafındaki herkes AI karakter. Post at, beğeni
 |--------|-----------|
 | Frontend | React Native (Expo) |
 | Backend | FastAPI |
-| Database | Supabase |
-| AI | Gemini Flash |
+| Database | Neon PostgreSQL (SQLAlchemy async) |
+| AI | Vertex AI Gemini Flash |
 | Avatar | DiceBear |
 | Push | Firebase FCM |
 
@@ -24,21 +24,29 @@ Kullanıcı gerçek bir kişi; etrafındaki herkes AI karakter. Post at, beğeni
 
 ## Kurulum
 
-### Supabase
+### Neon PostgreSQL
 ```sql
--- Sırayla çalıştır:
-supabase/migrations/001_initial_schema.sql
-supabase/migrations/002_vibe_updates.sql
-supabase/seed/comment_templates.sql
+-- Neon SQL Editor'de sırayla çalıştır:
+database/migrations/001_initial_schema.sql
+database/migrations/002_vibe_updates.sql
+database/seed/comment_templates.sql
 ```
-Storage'da `posts` bucket oluştur (public).
 
 ### Backend
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
+# DATABASE_URL, GOOGLE_APPLICATION_CREDENTIALS, VERTEX_AI_PROJECT_ID doldur
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+`.env` örneği:
+```
+DATABASE_URL=postgresql://...@ep-xxx.neon.tech/neondb?sslmode=require
+GOOGLE_APPLICATION_CREDENTIALS=../keys/your-service-account.json
+VERTEX_AI_PROJECT_ID=your-project-id
+VERTEX_AI_LOCATION=us-central1
 ```
 
 ### Fake Users
@@ -61,7 +69,7 @@ npx expo start
 ```
 backend/     → FastAPI (engagement, growth, DM, AI)
 mobile/      → Expo app (feed, explore, DM, profil)
-supabase/    → SQL migrations
+database/    → SQL migrations & seed
 ```
 
 ## Özellikler

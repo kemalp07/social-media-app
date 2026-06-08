@@ -22,8 +22,11 @@ class UserResponse(BaseModel):
     following_count: int
     post_count: int
     tier_level: str
+    level: str = "beginner"
     total_likes_received: int
     created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class PostCreate(BaseModel):

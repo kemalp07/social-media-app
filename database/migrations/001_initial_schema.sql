@@ -1,5 +1,5 @@
--- Social Media App - Initial Schema
--- Run in Supabase SQL Editor or via CLI
+-- Vibe App - Initial Schema
+-- Run in Neon PostgreSQL SQL Editor
 
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

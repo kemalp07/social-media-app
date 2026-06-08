@@ -1,16 +1,24 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    supabase_url: str
-    supabase_key: str
-    gemini_api_key: str
-    firebase_credentials_path: str = ""
+    database_url: str
+    google_application_credentials: str
+    vertex_ai_project_id: str
+    vertex_ai_location: str = "us-central1"
+    vertex_ai_model: str = "gemini-2.0-flash-lite"
     environment: str = "development"
     cors_origins: str = "*"
+    firebase_credentials_path: str = ""
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @property
+    def async_database_url(self) -> str:
+        url = self.database_url
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -1,14 +1,16 @@
+import asyncio
 import json
+import os
 import re
 from decimal import Decimal
 
-import google.generativeai as genai
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part
 
 from app.config import settings
 from app.schemas import PostAnalysis
 
-genai.configure(api_key=settings.gemini_api_key)
-MODEL = genai.GenerativeModel("gemini-2.0-flash")
+_initialized = False
 
 PERSONALITY_PROMPTS = {
     "friendly": "Sıcak, samimi, emoji kullanan, destekleyici biri. Türkçe konuş.",
@@ -19,7 +21,42 @@ PERSONALITY_PROMPTS = {
 }
 
 
-async def analyze_post(image_url: str, caption: str) -> PostAnalysis:
+def _ensure_vertex():
+    global _initialized
+    if _initialized:
+        return
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.google_application_credentials
+    vertexai.init(project=settings.vertex_ai_project_id, location=settings.vertex_ai_location)
+    _initialized = True
+
+
+def _get_model() -> GenerativeModel:
+    _ensure_vertex()
+    return GenerativeModel(settings.vertex_ai_model)
+
+
+def _generate_text_sync(prompt: str) -> str:
+    model = _get_model()
+    response = model.generate_content(prompt)
+    return response.text.strip()
+
+
+def _analyze_image_sync(image_bytes: bytes, prompt: str, mime_type: str = "image/jpeg") -> str:
+    model = _get_model()
+    image_part = Part.from_data(image_bytes, mime_type=mime_type)
+    response = model.generate_content([prompt, image_part])
+    return response.text.strip()
+
+
+async def generate_text(prompt: str) -> str:
+    return await asyncio.to_thread(_generate_text_sync, prompt)
+
+
+async def analyze_image(image_bytes: bytes, prompt: str, mime_type: str = "image/jpeg") -> str:
+    return await asyncio.to_thread(_analyze_image_sync, image_bytes, prompt, mime_type)
+
+
+async def analyze_post(image_bytes: bytes, caption: str, mime_type: str = "image/jpeg") -> PostAnalysis:
     prompt = f"""Bu fotoğrafı sosyal medya post kalite skoru için analiz et.
 Caption: "{caption}"
 
@@ -33,8 +70,7 @@ SADECE JSON döndür:
 }}"""
 
     try:
-        response = MODEL.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_url}])
-        text = response.text.strip()
+        text = await analyze_image(image_bytes, prompt, mime_type)
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             data = json.loads(match.group())
@@ -58,12 +94,13 @@ SADECE JSON döndür:
 
 
 async def generate_ai_comment(
-    image_url: str,
+    image_bytes: bytes,
     caption: str,
     personality_type: str,
     interests: list[str],
     display_name: str,
     comment_hints: list[str] | None = None,
+    mime_type: str = "image/jpeg",
 ) -> str:
     personality = PERSONALITY_PROMPTS.get(personality_type, PERSONALITY_PROMPTS["friendly"])
     hints = ", ".join(comment_hints or [])
@@ -77,8 +114,8 @@ Caption: "{caption}"
 Hashtag kullanma."""
 
     try:
-        response = MODEL.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_url}])
-        return response.text.strip().strip('"')[:120]
+        text = await analyze_image(image_bytes, prompt, mime_type)
+        return text.strip().strip('"')[:120]
     except Exception:
         return "Çok güzel! 🔥"
 
@@ -111,7 +148,6 @@ Kullanıcı: "{user_message}"
 Kısa, doğal sosyal medya dili kullan. Max 2 cümle. Türkçe."""
 
     try:
-        response = MODEL.generate_content(prompt)
-        return response.text.strip()[:250]
+        return (await generate_text(prompt))[:250]
     except Exception:
         return "haha doğru söylüyorsun 😊"

@@ -1,16 +1,18 @@
 """Beğeni, yorum ve engagement hesaplama."""
 import random
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 from uuid import UUID
 
-from app.database import get_supabase
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.models import FakeUser, Like, Post, ScheduledLike
 
 DRIP_WINDOWS = [(0, 5, 0.10), (5, 30, 0.40), (30, 60, 0.30), (60, 1440, 0.20)]
 
 
 def calculate_engagement(quality_score: float, follower_count: int, is_premium: bool = False) -> dict:
-    """Skora göre beğeni ve takipçi kazancı hesapla."""
     fc = max(follower_count, 10)
 
     if quality_score >= 9:
@@ -27,33 +29,21 @@ def calculate_engagement(quality_score: float, follower_count: int, is_premium: 
         follower_gain = random.randint(2, 10)
 
     target_likes = max(5, int(fc * like_ratio))
-    is_viral = False
-
-    if quality_score >= 8.5 and random.random() < 0.20:
-        is_viral = True
+    is_viral = quality_score >= 8.5 and random.random() < 0.20
+    if is_viral:
         target_likes *= 10
-
     if is_premium:
         target_likes = int(target_likes * 1.5)
         follower_gain *= 2
 
-    return {
-        "target_likes": target_likes,
-        "follower_gain": follower_gain,
-        "is_viral": is_viral,
-    }
+    return {"target_likes": target_likes, "follower_gain": follower_gain, "is_viral": is_viral}
 
 
-async def schedule_likes(post_id: UUID, target_count: int) -> None:
-    db = get_supabase()
-    users = (
-        db.table("fake_users")
-        .select("id")
-        .gte("tier", 2)
-        .limit(target_count * 2)
-        .execute()
+async def schedule_likes(session: AsyncSession, post_id: UUID, target_count: int) -> None:
+    result = await session.execute(
+        select(FakeUser.id).where(FakeUser.tier >= 2).limit(target_count * 2)
     )
-    fake_ids = [u["id"] for u in (users.data or [])]
+    fake_ids = [row[0] for row in result.all()]
     if not fake_ids:
         return
 
@@ -69,40 +59,34 @@ async def schedule_likes(post_id: UUID, target_count: int) -> None:
                 break
             fid = fake_ids.pop()
             offset = w_start * 60 + random.randint(0, max(1, duration))
-            scheduled.append({
-                "post_id": str(post_id),
-                "fake_user_id": fid,
-                "scheduled_at": (post_created + timedelta(seconds=offset)).isoformat(),
-            })
+            scheduled.append(ScheduledLike(
+                post_id=post_id,
+                fake_user_id=fid,
+                scheduled_at=post_created + timedelta(seconds=offset),
+            ))
 
-    if scheduled:
-        db.table("scheduled_likes").insert(scheduled).execute()
+    session.add_all(scheduled)
 
 
-async def deliver_pending_likes() -> int:
-    db = get_supabase()
-    now = datetime.now(timezone.utc).isoformat()
-    pending = (
-        db.table("scheduled_likes")
-        .select("*, posts(user_id, like_count)")
-        .eq("delivered", False)
-        .lte("scheduled_at", now)
+async def deliver_pending_likes(session: AsyncSession) -> int:
+    now = datetime.now(timezone.utc)
+    result = await session.execute(
+        select(ScheduledLike)
+        .options(selectinload(ScheduledLike.post))
+        .where(ScheduledLike.delivered == False, ScheduledLike.scheduled_at <= now)
         .limit(100)
-        .execute()
     )
-
+    pending = result.scalars().all()
     count = 0
-    for item in pending.data or []:
+
+    for item in pending:
         try:
-            db.table("likes").insert({
-                "post_id": item["post_id"],
-                "fake_user_id": item["fake_user_id"],
-            }).execute()
-            db.table("scheduled_likes").update({"delivered": True}).eq("id", item["id"]).execute()
-            post = item.get("posts") or {}
-            new_count = (post.get("like_count") or 0) + 1
-            db.table("posts").update({"like_count": new_count}).eq("id", item["post_id"]).execute()
+            session.add(Like(post_id=item.post_id, fake_user_id=item.fake_user_id))
+            item.delivered = True
+            if item.post:
+                item.post.like_count = (item.post.like_count or 0) + 1
             count += 1
         except Exception:
-            db.table("scheduled_likes").update({"delivered": True}).eq("id", item["id"]).execute()
+            item.delivered = True
+
     return count
