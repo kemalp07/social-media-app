@@ -12,20 +12,22 @@ from app.models import (
 
 
 def user_to_dict(user: User) -> dict:
+    from datetime import datetime, timezone
+
+    created_at = user.created_at or datetime.now(timezone.utc)
     return {
         "id": user.id,
         "username": user.username,
         "display_name": user.display_name,
-        "bio": user.bio,
+        "bio": user.bio or "",
         "avatar_url": user.avatar_url,
-        "follower_count": user.follower_count,
-        "following_count": user.following_count,
-        "post_count": user.post_count,
-        "tier_level": user.tier_level,
-        "level": user.level,
-        "total_likes_received": user.total_likes_received,
-        "created_at": user.created_at,
-        "last_active": user.last_active,
+        "follower_count": user.follower_count or 0,
+        "following_count": user.following_count or 0,
+        "post_count": user.post_count or 0,
+        "tier_level": user.tier_level or "free",
+        "level": user.level or "beginner",
+        "total_likes_received": user.total_likes_received or 0,
+        "created_at": created_at,
     }
 
 

@@ -1,7 +1,9 @@
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -10,21 +12,47 @@ from app.schemas import FCMTokenUpdate, UserCreate, UserResponse
 from app.serializers import user_to_dict
 from app.services.avatar_service import dicebear_url
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post("", response_model=UserResponse)
+@router.post("", response_model=UserResponse, status_code=201)
 async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
-    user = User(
-        username=data.username,
-        display_name=data.display_name,
-        bio=data.bio,
-        avatar_url=dicebear_url(data.username),
-    )
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
-    return user_to_dict(user)
+    existing = await db.execute(select(User.id).where(User.username == data.username))
+    if existing.scalar_one_or_none():
+        logger.warning("Username already taken: %s", data.username)
+        raise HTTPException(status_code=409, detail="Bu kullanıcı adı zaten alınmış")
+
+    try:
+        user = User(
+            username=data.username.strip().lower(),
+            display_name=data.display_name.strip(),
+            bio=(data.bio or "").strip(),
+            avatar_url=dicebear_url(data.username),
+        )
+        db.add(user)
+        await db.flush()
+        await db.refresh(user)
+
+        response = UserResponse(**user_to_dict(user))
+        logger.info("User created: id=%s username=%s", user.id, user.username)
+        return response
+
+    except IntegrityError:
+        await db.rollback()
+        logger.warning("IntegrityError creating user: %s", data.username)
+        raise HTTPException(status_code=409, detail="Bu kullanıcı adı zaten alınmış")
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.exception("Database error creating user %s: %s", data.username, e)
+        raise HTTPException(status_code=500, detail="Veritabanı hatası, hesap oluşturulamadı")
+
+    except Exception as e:
+        await db.rollback()
+        logger.exception("Unexpected error creating user %s: %s", data.username, e)
+        raise HTTPException(status_code=500, detail="Hesap oluşturulamadı")
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -33,7 +61,7 @@ async def get_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")
-    return user_to_dict(user)
+    return UserResponse(**user_to_dict(user))
 
 
 @router.get("/by-username/{username}", response_model=UserResponse)
@@ -42,7 +70,7 @@ async def get_user_by_username(username: str, db: AsyncSession = Depends(get_db)
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")
-    return user_to_dict(user)
+    return UserResponse(**user_to_dict(user))
 
 
 @router.patch("/{user_id}/fcm-token")

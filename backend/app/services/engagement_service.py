@@ -12,6 +12,17 @@ from app.models import FakeUser, Like, Post, ScheduledLike
 DRIP_WINDOWS = [(0, 5, 0.10), (5, 30, 0.40), (30, 60, 0.30), (60, 1440, 0.20)]
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def as_utc(dt: datetime) -> datetime:
+    """DB'den gelen naive datetime'ları timezone-aware'e çevir."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 def calculate_engagement(quality_score: float, follower_count: int, is_premium: bool = False) -> dict:
     fc = max(follower_count, 10)
 
@@ -48,7 +59,7 @@ async def schedule_likes(session: AsyncSession, post_id: UUID, target_count: int
         return
 
     random.shuffle(fake_ids)
-    post_created = datetime.now(timezone.utc)
+    post_created = utc_now()
     scheduled = []
 
     for w_start, w_end, pct in DRIP_WINDOWS:
@@ -69,14 +80,17 @@ async def schedule_likes(session: AsyncSession, post_id: UUID, target_count: int
 
 
 async def deliver_pending_likes(session: AsyncSession) -> int:
-    now = datetime.now(timezone.utc)
+    now = utc_now()
     result = await session.execute(
         select(ScheduledLike)
         .options(selectinload(ScheduledLike.post))
-        .where(ScheduledLike.delivered == False, ScheduledLike.scheduled_at <= now)
-        .limit(100)
+        .where(ScheduledLike.delivered == False)
+        .limit(200)
     )
-    pending = result.scalars().all()
+    pending = [
+        item for item in result.scalars().all()
+        if as_utc(item.scheduled_at) <= now
+    ][:100]
     count = 0
 
     for item in pending:

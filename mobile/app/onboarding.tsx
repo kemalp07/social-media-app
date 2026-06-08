@@ -1,6 +1,7 @@
+import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +18,7 @@ import {
 import { VibeLogo } from '@/components/VibeLogo';
 import { useUser } from '@/context/UserContext';
 import { colors, spacing } from '@/constants/colors';
+import { API_URL } from '@/lib/config';
 
 const STEPS = ['welcome', 'profile', 'ready'] as const;
 
@@ -29,6 +31,11 @@ export default function Onboarding() {
   const [bio, setBio] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log('[Onboarding] API_URL:', API_URL);
+    console.log('[Onboarding] EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL ?? '(not set)');
+  }, []);
 
   const pickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -49,8 +56,33 @@ export default function Onboarding() {
     try {
       await register(username.trim().toLowerCase(), displayName.trim());
       router.replace('/(tabs)');
-    } catch {
-      Alert.alert('Hata', 'Hesap oluşturulamadı.');
+    } catch (error) {
+      const axiosDetail = axios.isAxiosError(error)
+        ? {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            url: error.config?.url,
+            baseURL: error.config?.baseURL,
+            message: error.message,
+          }
+        : null;
+
+      console.log('[Onboarding] Hesap oluşturma hatası:', {
+        apiUrl: API_URL,
+        username: username.trim().toLowerCase(),
+        error,
+        axiosDetail,
+      });
+
+      const serverMessage =
+        axios.isAxiosError(error) && error.response?.data?.detail
+          ? String(error.response.data.detail)
+          : error instanceof Error
+            ? error.message
+            : 'Bilinmeyen hata';
+
+      Alert.alert('Hata', `Hesap oluşturulamadı: ${serverMessage}`);
     } finally {
       setLoading(false);
     }
