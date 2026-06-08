@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { ActivityIndicator, SectionList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, SectionList, StyleSheet, Text, View } from 'react-native';
 
 import { NotificationItem } from '@/components/NotificationItem';
 import { useUser } from '@/context/UserContext';
@@ -65,7 +65,7 @@ export default function NotificationsScreen() {
       )}
       ListEmptyComponent={
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>🔔</Text>
+          <Image source={require('../../assets/empty_states/empty_notifications.png')} style={styles.emptyImage} />
           <Text style={styles.emptyText}>Henüz bildirim yok</Text>
         </View>
       }
@@ -87,6 +87,6 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md },
   sectionTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '700', marginBottom: 8, marginTop: 8 },
   empty: { alignItems: 'center', paddingTop: 80 },
-  emptyEmoji: { fontSize: 48 },
+  emptyImage: { width: 200, height: 200, resizeMode: 'contain' },
   emptyText: { color: colors.textMuted, marginTop: spacing.md },
 });

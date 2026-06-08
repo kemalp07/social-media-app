@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DMItem } from '@/components/DMItem';
 import { useUser } from '@/context/UserContext';
@@ -39,7 +39,7 @@ export default function MessagesScreen() {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>💬</Text>
+            <Image source={require('../../assets/empty_states/empty_dm.png')} style={styles.emptyImage} />
             <Text style={styles.emptyText}>Henüz mesaj yok</Text>
           </View>
         }
@@ -61,6 +61,6 @@ const styles = StyleSheet.create({
   newBtnText: { color: colors.primary, fontWeight: '600' },
   list: { paddingHorizontal: spacing.md },
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyEmoji: { fontSize: 48 },
+  emptyImage: { width: 200, height: 200, resizeMode: 'contain' },
   emptyText: { color: colors.textMuted, marginTop: spacing.md },
 });

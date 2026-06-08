@@ -1,13 +1,30 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageSourcePropType, Pressable, StyleSheet, View } from 'react-native';
 
 import { VibeLogo } from '@/components/VibeLogo';
 import { colors } from '@/constants/colors';
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+const TAB_ICONS = {
+  home: require('../../assets/icons/icon_home.png'),
+  explore: require('../../assets/icons/icon_explore.png'),
+  create: require('../../assets/icons/icon_add_post.png'),
+  notifications: require('../../assets/icons/icon_notification.png'),
+  messages: require('../../assets/icons/icon_dm.png'),
+  profile: require('../../assets/icons/icon_profile.png'),
+} as const;
+
+function TabIcon({
+  source,
+  focused,
+  tintColor,
+}: {
+  source: ImageSourcePropType;
+  focused: boolean;
+  tintColor: string;
+}) {
   return (
     <View style={styles.tabIcon}>
-      <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      <Image source={source} style={[styles.tabBarImage, { tintColor }]} />
       {focused && <View style={styles.dot} />}
     </View>
   );
@@ -18,10 +35,16 @@ function HeaderRight() {
   return (
     <View style={styles.headerRight}>
       <Pressable onPress={() => router.push('/(tabs)/notifications')} style={styles.iconBtn}>
-        <Text style={styles.headerIcon}>🔔</Text>
+        <Image
+          source={TAB_ICONS.notifications}
+          style={[styles.headerImage, { tintColor: colors.text }]}
+        />
       </Pressable>
       <Pressable onPress={() => router.push('/(tabs)/messages')} style={styles.iconBtn}>
-        <Text style={styles.headerIcon}>💬</Text>
+        <Image
+          source={TAB_ICONS.messages}
+          style={[styles.headerImage, { tintColor: colors.text }]}
+        />
       </Pressable>
     </View>
   );
@@ -50,24 +73,26 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Akış',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon source={TAB_ICONS.home} focused={focused} tintColor={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Keşfet',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon source={TAB_ICONS.explore} focused={focused} tintColor={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="create"
         options={{
           title: '',
-          tabBarIcon: () => (
-            <View style={styles.createBtn}>
-              <Text style={styles.createIcon}>+</Text>
-            </View>
+          tabBarIcon: ({ color }) => (
+            <Image source={TAB_ICONS.create} style={[styles.tabBarImage, { tintColor: color }]} />
           ),
         }}
       />
@@ -75,7 +100,19 @@ export default function TabLayout() {
         name="notifications"
         options={{
           title: 'Bildirim',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔔" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon source={TAB_ICONS.notifications} focused={focused} tintColor={color} />
+          ),
+          headerRight: undefined,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Mesajlar',
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon source={TAB_ICONS.messages} focused={focused} tintColor={color} />
+          ),
           headerRight: undefined,
         }}
       />
@@ -83,13 +120,11 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profil',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon source={TAB_ICONS.profile} focused={focused} tintColor={color} />
+          ),
           headerRight: undefined,
         }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{ href: null }}
       />
     </Tabs>
   );
@@ -97,6 +132,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabIcon: { alignItems: 'center' },
+  tabBarImage: { width: 24, height: 24 },
   dot: {
     width: 4,
     height: 4,
@@ -104,17 +140,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     marginTop: 2,
   },
-  createBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  createIcon: { color: '#fff', fontSize: 28, fontWeight: '300', marginTop: -2 },
   headerRight: { flexDirection: 'row', gap: 8, marginRight: 8 },
   iconBtn: { padding: 6 },
-  headerIcon: { fontSize: 20 },
+  headerImage: { width: 24, height: 24 },
 });

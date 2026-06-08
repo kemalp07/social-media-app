@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -80,7 +81,7 @@ export default function FeedScreen() {
       }
       ListEmptyComponent={
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>📸</Text>
+          <Image source={require('../../assets/empty_states/empty_feed.png')} style={styles.emptyImage} />
           <Text style={styles.emptyTitle}>Henüz gönderi yok</Text>
           <Text style={styles.emptyText}>İlk fotoğrafını paylaş!</Text>
         </View>
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
   stories: { marginBottom: spacing.md, paddingVertical: spacing.sm },
   followers: { color: colors.secondary, fontSize: 14, marginBottom: spacing.md, fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
+  emptyImage: { width: 200, height: 200, resizeMode: 'contain', marginBottom: spacing.md },
   emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
   emptyText: { color: colors.textMuted, fontSize: 14, marginTop: spacing.sm },
 });

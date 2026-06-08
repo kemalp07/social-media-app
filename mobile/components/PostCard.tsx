@@ -83,20 +83,31 @@ export function PostCard({ post }: Props) {
             <Text style={styles.placeholderText}>Görsel yok</Text>
           </View>
         )}
-        <Animated.Text
+        <Animated.View
           style={[styles.bigHeart, { transform: [{ scale: heartScale }], opacity: heartScale }]}
         >
-          ❤️
-        </Animated.Text>
+          <Image source={require('../assets/icons/icon_like_active.png')} style={styles.bigHeartIcon} />
+        </Animated.View>
       </Pressable>
 
       <View style={styles.actions}>
-        <Pressable onPress={handleLike}>
-          <Text style={styles.action}>{liked ? '❤️' : '🤍'} {formatCount(likeCount)}</Text>
+        <Pressable style={styles.actionBtn} onPress={handleLike}>
+          <Image
+            source={liked ? require('../assets/icons/icon_like_active.png') : require('../assets/icons/icon_like.png')}
+            style={styles.actionIcon}
+          />
+          <Text style={styles.actionCount}>{formatCount(likeCount)}</Text>
         </Pressable>
-        <Text style={styles.action}>💬 {formatCount(post.comment_count)}</Text>
-        <Text style={styles.action}>↗</Text>
-        <Text style={[styles.action, styles.save]}>🔖</Text>
+        <View style={styles.actionBtn}>
+          <Image source={require('../assets/icons/icon_comment.png')} style={styles.actionIcon} />
+          <Text style={styles.actionCount}>{formatCount(post.comment_count)}</Text>
+        </View>
+        <Pressable style={styles.actionBtn}>
+          <Image source={require('../assets/icons/icon_share.png')} style={styles.actionIcon} />
+        </Pressable>
+        <Pressable style={[styles.actionBtn, styles.save]}>
+          <Image source={require('../assets/icons/icon_save.png')} style={styles.actionIcon} />
+        </Pressable>
       </View>
 
       <Text style={styles.likes}>{formatCount(likeCount)} beğeni</Text>
@@ -147,15 +158,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     top: '40%',
-    fontSize: 80,
   },
+  bigHeartIcon: { width: 80, height: 80 },
   actions: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
     gap: spacing.md,
   },
-  action: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionIcon: { width: 24, height: 24 },
+  actionCount: { color: colors.text, fontSize: 14, fontWeight: '600' },
   save: { marginLeft: 'auto' },
   likes: { color: colors.text, fontWeight: '700', fontSize: 14, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   caption: { color: colors.text, fontSize: 14, paddingHorizontal: spacing.md, paddingTop: 4 },

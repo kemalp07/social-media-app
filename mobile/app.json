@@ -4,9 +4,14 @@
     "slug": "vibe",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app_icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "vibe",
+    "splash": {
+      "image": "./assets/splash/splash_screen.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f1117"
+    },
     "ios": {
       "supportsTablet": true
     },
