@@ -32,7 +32,7 @@ const ONBOARDING_BACKGROUNDS = [
 ] as const;
 
 export default function Onboarding() {
-  const { register } = useUser();
+  const { register, refreshUser } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [username, setUsername] = useState('');
@@ -65,6 +65,7 @@ export default function Onboarding() {
     setLoading(true);
     try {
       await register(username.trim().toLowerCase(), displayName.trim());
+      await refreshUser();
       router.replace('/(tabs)');
     } catch (error) {
       const axiosDetail = axios.isAxiosError(error)

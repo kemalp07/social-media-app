@@ -47,7 +47,7 @@ export default function ProfileScreen() {
     if (user) {
       api.getUserPosts(user.id).then(setPosts).catch(() => setPosts([]));
     }
-  }, [user]);
+  }, [user, user?.post_count]);
 
   if (!user) return null;
 

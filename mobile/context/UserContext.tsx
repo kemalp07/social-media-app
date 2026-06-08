@@ -55,12 +55,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     refreshUser().finally(() => setLoading(false));
   }, [refreshUser]);
 
-  const register = async (username: string, displayName: string) => {
+  const register = useCallback(async (username: string, displayName: string) => {
     const data = await api.createUser(username, displayName);
     await setStoredUserId(data.id);
     setUser(data);
-    await loadLocalAvatar(data.id);
-  };
+    await new Promise((r) => setTimeout(r, 500));
+    await refreshUser();
+  }, [refreshUser]);
 
   const login = async (username: string) => {
     const data = await api.getUserByUsername(username);
@@ -95,7 +96,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       logout,
       updateLocalAvatar,
     }),
-    [user, loading, localAvatarUri, refreshUser, updateLocalAvatar]
+    [user, loading, localAvatarUri, refreshUser, register, updateLocalAvatar]
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

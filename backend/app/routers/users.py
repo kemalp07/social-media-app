@@ -35,6 +35,7 @@ async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
         db.add(user)
         await db.flush()
         await create_welcome_package(user.id, db)
+        await db.flush()
         await db.refresh(user)
 
         response = UserResponse(**user_to_dict(user))

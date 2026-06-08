@@ -60,6 +60,14 @@ export default function FeedScreen() {
   );
 
   useEffect(() => {
+    if (!user?.id) return;
+    setLoading(true);
+    load()
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [user?.id, user?.post_count, load, setLoading]);
+
+  useEffect(() => {
     api.getTier1Characters().then(setStories).catch(() => setStories([]));
   }, []);
 
@@ -92,6 +100,7 @@ export default function FeedScreen() {
         data={posts}
         keyExtractor={(item) => item.id}
         style={styles.list}
+        initialNumToRender={5}
         {...listScrollProps}
         renderItem={({ item }) => <PostCard post={item} />}
         contentContainerStyle={styles.listContent}
